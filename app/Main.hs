@@ -28,7 +28,8 @@ render model = show model
 
 main :: IO ()
 main = do
-  let initialModel = Model {entries = [], quit = False}
+  content <- readFile "model.txt"
+  let initialModel = Model {entries = lines content, quit = False}
   loop initialModel
 
 loop :: Model -> IO ()
