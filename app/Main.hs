@@ -2,6 +2,9 @@
 
 module Main (main) where
 
+modelFile :: FilePath
+modelFile = "model.txt"
+
 data Model = Model
   { entries :: [String],
     quit :: Bool
@@ -28,7 +31,7 @@ render model = show model
 
 main :: IO ()
 main = do
-  content <- readFile "model.txt"
+  content <- readFile modelFile
   let initialModel = Model {entries = lines content, quit = False}
   loop initialModel
 
@@ -41,7 +44,7 @@ loop model = do
   let newModel = update msg model
   if newModel.quit == True
     then do
-      writeFile "model.txt" (unlines newModel.entries)
+      writeFile modelFile (unlines newModel.entries)
       putStrLn "Bye!"
     else
       loop newModel
