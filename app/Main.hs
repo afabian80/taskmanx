@@ -40,7 +40,8 @@ loop model = do
   let msg = lineToMsg line
   let newModel = update msg model
   if newModel.quit == True
-    then
+    then do
+      writeFile "model.txt" (unlines newModel.entries)
       putStrLn "Bye!"
     else
       loop newModel
