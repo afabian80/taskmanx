@@ -14,19 +14,15 @@ data Model = Model
   deriving (Show)
 
 data Msg
-  = Add String
-  | Inc
+  = Command String
   | Quit
-  | Nope
   deriving (Show)
 
 update :: Msg -> Model -> Model
 update msg model =
   case msg of
-    Add s -> model {entries = model.entries ++ [s]}
-    Inc -> model {entries = model.entries ++ ["."]}
+    Command s -> model {entries = model.entries ++ [s]}
     Quit -> model {quit = True}
-    Nope -> model
 
 render :: Model -> String
 render model = show model
@@ -44,7 +40,7 @@ main = do
 loop :: Model -> IO ()
 loop model = do
   putStrLn $ render model
-  putStrLn "'i' to add dots. 'q' to quit."
+  putStrLn "Enter a command. 'q' to quit."
   line <- getLine
   let msg = lineToMsg line
   let newModel = update msg model
@@ -57,6 +53,5 @@ loop model = do
 
 lineToMsg :: String -> Msg
 lineToMsg line = case line of
-  "i" -> Inc
   "q" -> Quit
-  _ -> Add line
+  _ -> Command line
