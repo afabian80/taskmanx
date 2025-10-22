@@ -2,6 +2,8 @@
 
 module Main (main) where
 
+import System.Directory (doesFileExist)
+
 modelFile :: FilePath
 modelFile = "model.txt"
 
@@ -31,9 +33,13 @@ render model = show model
 
 main :: IO ()
 main = do
-  content <- readFile modelFile
-  let initialModel = Model {entries = lines content, quit = False}
-  loop initialModel
+  exists <- doesFileExist modelFile
+  if exists
+    then do
+      content <- readFile modelFile
+      loop Model {entries = lines content, quit = False}
+    else do
+      loop Model {entries = [], quit = False}
 
 loop :: Model -> IO ()
 loop model = do
