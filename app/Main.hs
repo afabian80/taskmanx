@@ -3,7 +3,7 @@
 module Main (main) where
 
 data Model = Model
-  { entries :: String,
+  { entries :: [String],
     quit :: Bool
   }
   deriving (Show)
@@ -18,8 +18,8 @@ data Msg
 update :: Msg -> Model -> Model
 update msg model =
   case msg of
-    Add s -> model {entries = model.entries ++ s}
-    Inc -> model {entries = model.entries ++ "."}
+    Add s -> model {entries = model.entries ++ [s]}
+    Inc -> model {entries = model.entries ++ ["."]}
     Quit -> model {quit = True}
     Nope -> model
 
@@ -28,7 +28,7 @@ render model = show model
 
 main :: IO ()
 main = do
-  let initialModel = Model {entries = "", quit = False}
+  let initialModel = Model {entries = [], quit = False}
   loop initialModel
 
 loop :: Model -> IO ()
