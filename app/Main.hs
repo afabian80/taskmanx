@@ -25,7 +25,17 @@ update msg model =
     Quit -> model {quit = True}
 
 render :: Model -> String
-render model = show model
+render model = renderEntries model ++ debugModel model
+
+debugModel :: Model -> String
+debugModel model = "\n\n" ++ show model ++ "\n"
+
+renderEntries :: Model -> String
+renderEntries model =
+  let pairs = zip [1 :: Int ..] model.entries
+      entryList = map showEntry pairs
+      showEntry (i, e) = show i ++ ". " ++ e
+   in "Entries:\n" ++ unlines entryList
 
 main :: IO ()
 main = do
