@@ -9,7 +9,8 @@ data Model = Model
   deriving (Show)
 
 data Msg
-  = Inc
+  = Add String
+  | Inc
   | Quit
   | Nope
   deriving (Show)
@@ -17,6 +18,7 @@ data Msg
 update :: Msg -> Model -> Model
 update msg model =
   case msg of
+    Add s -> model {content = model.content ++ s}
     Inc -> model {content = model.content ++ "."}
     Quit -> model {quit = True}
     Nope -> model
@@ -46,4 +48,4 @@ lineToMsg :: String -> Msg
 lineToMsg line = case line of
   "i" -> Inc
   "q" -> Quit
-  _ -> Nope
+  _ -> Add line
