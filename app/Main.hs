@@ -20,7 +20,10 @@ data Msg
   | Command String
   deriving (Show)
 
-data Command = NewTask String deriving (Show)
+data Command
+  = NewTask String
+  | DeleteTask String
+  deriving (Show)
 
 update :: Msg -> Model -> Model
 update msg model =
@@ -33,15 +36,29 @@ handleLine :: String -> Model -> Model
 handleLine line model =
   case command of
     Right (NewTask task) -> model {entries = model.entries ++ [task]}
+    Right (DeleteTask task) -> deleteTask model task
     Left e -> model {_error = Just e}
   where
     command = mkCommand line
 
+deleteTask :: Model -> String -> Model
+deleteTask model task =
+  if task `elem` model.entries
+    then
+      model {entries = newEntries}
+    else
+      model {_error = Just $ "Cannot delete " ++ task}
+  where
+    newEntries = filter (/= task) model.entries
+
 addCommands :: [String]
 addCommands = ["new", "add"]
 
+delCommands :: [String]
+delCommands = ["del", "delete", "rm", "remove"]
+
 allCommands :: [String]
-allCommands = concat [addCommands]
+allCommands = concat [addCommands, delCommands]
 
 mkCommand :: String -> Either String Command
 mkCommand line =
@@ -52,6 +69,7 @@ mkCommand line =
       | otherwise -> Left ("Unknown command: " ++ command)
     (command : args)
       | command `elem` addCommands -> mkNewCommand args
+      | command `elem` delCommands -> mkDelCommand args
       | otherwise -> Left ("Unknown command: " ++ command)
 
 mkNewCommand :: [String] -> Either String Command
@@ -61,6 +79,14 @@ mkNewCommand args =
       Left "Not enough arguments!"
     else
       Right (NewTask (unwords args))
+
+mkDelCommand :: [String] -> Either String Command
+mkDelCommand args =
+  if null args
+    then
+      Left "Not enough arguments!"
+    else
+      Right (DeleteTask (unwords args))
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
