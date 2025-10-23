@@ -32,22 +32,22 @@ update msg model =
 handleLine :: String -> Model -> Model
 handleLine line model =
   case command of
-    Just (NewTask task) -> model {entries = model.entries ++ [task]}
-    Nothing -> model {_error = Just "cannot process command"}
+    Right (NewTask task) -> model {entries = model.entries ++ [task]}
+    Left e -> model {_error = Just e}
   where
     command = mkCommand line
 
-mkCommand :: String -> Maybe Command
+mkCommand :: String -> Either String Command
 mkCommand line =
   case words line of
-    [] -> Nothing
-    [_] -> Nothing
+    [] -> Left "Empty command"
+    [w] -> Left ("Cannot process single word: " ++ w)
     (w : ws) ->
-      if w == "new"
+      if w `elem` ["new", "add"]
         then
-          Just (NewTask (unwords ws))
+          Right (NewTask (unwords ws))
         else
-          Nothing
+          Left ("Unknown command: " ++ w)
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
