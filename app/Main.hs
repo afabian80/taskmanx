@@ -38,7 +38,16 @@ handleLine line model =
     command = mkCommand line
 
 mkCommand :: String -> Maybe Command
-mkCommand line = Just $ NewTask line
+mkCommand line =
+  case words line of
+    [] -> Nothing
+    [_] -> Nothing
+    (w : ws) ->
+      if w == "new"
+        then
+          Just (NewTask (unwords ws))
+        else
+          Nothing
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
