@@ -47,20 +47,20 @@ mkCommand :: String -> Either String Command
 mkCommand line =
   case words line of
     [] -> Left "Empty command"
-    [command] ->
-      if command `elem` allCommands
-        then Left $ "Not enough arguments for " ++ command
-        else Left ("Unknown command: " ++ command)
-    (command : args) ->
-      if command `elem` addCommands
-        then
-          if null args
-            then
-              Left "Not enough arguments!"
-            else
-              Right (NewTask (unwords args))
-        else
-          Left ("Unknown command: " ++ command)
+    [command]
+      | command `elem` allCommands -> Left $ "Not enough arguments for " ++ command
+      | otherwise -> Left ("Unknown command: " ++ command)
+    (command : args)
+      | command `elem` addCommands -> mkNewCommand args
+      | otherwise -> Left ("Unknown command: " ++ command)
+
+mkNewCommand :: [String] -> Either String Command
+mkNewCommand args =
+  if null args
+    then
+      Left "Not enough arguments!"
+    else
+      Right (NewTask (unwords args))
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
