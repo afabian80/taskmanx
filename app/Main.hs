@@ -2,6 +2,7 @@
 
 module Main (main) where
 
+import Data.List (isPrefixOf)
 import System.Directory (doesFileExist)
 
 modelFile :: FilePath
@@ -15,6 +16,7 @@ data Model = Model
 
 data Msg
   = Command String
+  | New String
   | Nope
   | Quit
   deriving (Show)
@@ -22,9 +24,10 @@ data Msg
 update :: Msg -> Model -> Model
 update msg model =
   case msg of
-    Command s -> model {entries = model.entries ++ [s]}
+    Command _ -> model
     Quit -> model {quit = True}
     Nope -> model
+    New s -> model {entries = model.entries ++ [s]}
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
@@ -67,4 +70,11 @@ lineToMsg :: String -> Msg
 lineToMsg line
   | line == "" = Nope
   | line == "q" = Quit
+  | isNewCommand line = New $ mkNew line
   | otherwise = Command line
+
+mkNew :: String -> String
+mkNew s = drop 4 s
+
+isNewCommand :: String -> Bool
+isNewCommand line = isPrefixOf "new " line
