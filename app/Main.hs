@@ -18,6 +18,7 @@ data Model = Model
 data Msg
   = UnknownCommand String
   | New String
+  | Delete String
   | Nope
   | Quit
   deriving (Show)
@@ -29,6 +30,15 @@ update msg model =
     Quit -> model {quit = True}
     Nope -> model {_error = Nothing}
     New s -> model {entries = model.entries ++ [s], _error = Nothing}
+    Delete s -> model {entries = newEntries, _error = err}
+      where
+        (newEntries, err) = tryToDelete model.entries s
+
+tryToDelete :: [String] -> String -> ([String], Maybe String)
+tryToDelete list item =
+  if item `elem` list
+    then (filter (/= item) list, Nothing)
+    else (list, Just (item ++ " is not in the list!"))
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
@@ -73,11 +83,20 @@ lineToMsg :: String -> Msg
 lineToMsg line
   | line == "" = Nope
   | line == "q" = Quit
-  | isNewCommand line = New $ mkNew line
+  | isCommand newCommandPattern line = New $ mkCommand newCommandPattern line
+  | isCommand deleteCommandPattern line = Delete $ mkCommand deleteCommandPattern line
   | otherwise = UnknownCommand line
 
-mkNew :: String -> String
-mkNew s = drop 4 s
+type CommandPattern = String
 
-isNewCommand :: String -> Bool
-isNewCommand line = isPrefixOf "new " line
+newCommandPattern :: CommandPattern
+newCommandPattern = "new "
+
+deleteCommandPattern :: CommandPattern
+deleteCommandPattern = "delete "
+
+mkCommand :: CommandPattern -> String -> String
+mkCommand cmdPattern line = drop (length cmdPattern) line
+
+isCommand :: CommandPattern -> String -> Bool
+isCommand cmdPattern line = isPrefixOf cmdPattern line
