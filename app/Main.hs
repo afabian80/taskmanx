@@ -2,7 +2,9 @@
 
 module Main (main) where
 
+import qualified Data.Map as Map
 import System.Directory (doesFileExist)
+import Text.Read (readMaybe)
 
 modelFile :: FilePath
 modelFile = "model.txt"
@@ -43,6 +45,25 @@ handleLine line model =
 
 deleteTask :: Model -> String -> Model
 deleteTask model task =
+  case maybeIndex of
+    Nothing -> deleteTaskByName model task
+    Just index -> deleteTaskByIndex model index
+  where
+    maybeIndex = readMaybe task :: Maybe Int
+
+deleteTaskByIndex :: Model -> Int -> Model
+deleteTaskByIndex model index =
+  case taskAtIndex of
+    Nothing -> model {_error = Just $ "No task with index " ++ show index}
+    Just task -> deleteTaskByName model task
+  where
+    pairs = zip [1 ..] model.entries
+    taskMap = Map.fromList pairs
+    taskAtIndex = Map.lookup index taskMap
+
+-- thePair = filter (\(i,t) -> if i == index then True else False) pairs
+deleteTaskByName :: Model -> String -> Model
+deleteTaskByName model task =
   if task `elem` model.entries
     then
       model {entries = newEntries}
