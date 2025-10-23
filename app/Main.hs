@@ -15,6 +15,7 @@ data Model = Model
 
 data Msg
   = Command String
+  | Nope
   | Quit
   deriving (Show)
 
@@ -23,6 +24,7 @@ update msg model =
   case msg of
     Command s -> model {entries = model.entries ++ [s]}
     Quit -> model {quit = True}
+    Nope -> model
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
@@ -63,5 +65,6 @@ loop model = do
 
 lineToMsg :: String -> Msg
 lineToMsg line = case line of
+  "" -> Nope
   "q" -> Quit
   _ -> Command line
