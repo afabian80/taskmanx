@@ -10,12 +10,13 @@ modelFile = "model.txt"
 
 data Model = Model
   { entries :: [String],
-    quit :: Bool
+    quit :: Bool,
+    _error :: Maybe String
   }
   deriving (Show)
 
 data Msg
-  = Command String
+  = UnknownCommand String
   | New String
   | Nope
   | Quit
@@ -24,10 +25,10 @@ data Msg
 update :: Msg -> Model -> Model
 update msg model =
   case msg of
-    Command _ -> model
+    UnknownCommand s -> model {_error = Just $ "Unknown command: " ++ s}
     Quit -> model {quit = True}
-    Nope -> model
-    New s -> model {entries = model.entries ++ [s]}
+    Nope -> model {_error = Nothing}
+    New s -> model {entries = model.entries ++ [s], _error = Nothing}
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
@@ -40,7 +41,9 @@ renderEntries model =
   let pairs = zip [1 :: Int ..] model.entries
       entryList = map showEntry pairs
       showEntry (i, e) = show i ++ ". " ++ e
-   in "Entries:\n" ++ unlines entryList
+      modelError Nothing = ""
+      modelError (Just e) = "ERROR: " ++ e
+   in "\nEntries:\n" ++ unlines entryList ++ "\n" ++ modelError model._error
 
 main :: IO ()
 main = do
@@ -48,9 +51,9 @@ main = do
   if exists
     then do
       content <- readFile modelFile
-      loop Model {entries = lines content, quit = False}
+      loop Model {entries = lines content, quit = False, _error = Nothing}
     else do
-      loop Model {entries = [], quit = False}
+      loop Model {entries = [], quit = False, _error = Nothing}
 
 loop :: Model -> IO ()
 loop model = do
@@ -71,7 +74,7 @@ lineToMsg line
   | line == "" = Nope
   | line == "q" = Quit
   | isNewCommand line = New $ mkNew line
-  | otherwise = Command line
+  | otherwise = UnknownCommand line
 
 mkNew :: String -> String
 mkNew s = drop 4 s
