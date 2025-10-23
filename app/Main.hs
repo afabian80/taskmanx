@@ -37,17 +37,30 @@ handleLine line model =
   where
     command = mkCommand line
 
+addCommands :: [String]
+addCommands = ["new", "add"]
+
+allCommands :: [String]
+allCommands = concat [addCommands]
+
 mkCommand :: String -> Either String Command
 mkCommand line =
   case words line of
     [] -> Left "Empty command"
-    [w] -> Left ("Cannot process single word: " ++ w)
-    (w : ws) ->
-      if w `elem` ["new", "add"]
+    [command] ->
+      if command `elem` allCommands
+        then Left $ "Not enough arguments for " ++ command
+        else Left ("Unknown command: " ++ command)
+    (command : args) ->
+      if command `elem` addCommands
         then
-          Right (NewTask (unwords ws))
+          if null args
+            then
+              Left "Not enough arguments!"
+            else
+              Right (NewTask (unwords args))
         else
-          Left ("Unknown command: " ++ w)
+          Left ("Unknown command: " ++ command)
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
