@@ -64,7 +64,7 @@ loop model = do
       loop newModel
 
 lineToMsg :: String -> Msg
-lineToMsg line = case line of
-  "" -> Nope
-  "q" -> Quit
-  _ -> Command line
+lineToMsg line
+  | line == "" = Nope
+  | line == "q" = Quit
+  | otherwise = Command line
