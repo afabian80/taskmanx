@@ -93,7 +93,7 @@ newCommandPattern :: CommandPattern
 newCommandPattern = "new "
 
 deleteCommandPattern :: CommandPattern
-deleteCommandPattern = "delete "
+deleteCommandPattern = "del "
 
 mkCommand :: CommandPattern -> String -> String
 mkCommand cmdPattern line = drop (length cmdPattern) line
