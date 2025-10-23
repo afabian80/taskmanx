@@ -2,7 +2,6 @@
 
 module Main (main) where
 
-import Data.List (isPrefixOf)
 import System.Directory (doesFileExist)
 
 modelFile :: FilePath
@@ -16,29 +15,30 @@ data Model = Model
   deriving (Show)
 
 data Msg
-  = UnknownCommand String
-  | New String
-  | Delete String
-  | Nope
+  = Nope
   | Quit
+  | Command String
   deriving (Show)
+
+data Command = NewTask String deriving (Show)
 
 update :: Msg -> Model -> Model
 update msg model =
   case msg of
-    UnknownCommand s -> model {_error = Just $ "Unknown command: " ++ s}
     Quit -> model {quit = True}
     Nope -> model {_error = Nothing}
-    New s -> model {entries = model.entries ++ [s], _error = Nothing}
-    Delete s -> model {entries = newEntries, _error = err}
-      where
-        (newEntries, err) = tryToDelete model.entries s
+    Command line -> handleLine line model
 
-tryToDelete :: [String] -> String -> ([String], Maybe String)
-tryToDelete list item =
-  if item `elem` list
-    then (filter (/= item) list, Nothing)
-    else (list, Just (item ++ " is not in the list!"))
+handleLine :: String -> Model -> Model
+handleLine line model =
+  case command of
+    Just (NewTask task) -> model {entries = model.entries ++ [task]}
+    Nothing -> model {_error = Just "cannot process command"}
+  where
+    command = mkCommand line
+
+mkCommand :: String -> Maybe Command
+mkCommand line = Just $ NewTask line
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
@@ -83,20 +83,4 @@ lineToMsg :: String -> Msg
 lineToMsg line
   | line == "" = Nope
   | line == "q" = Quit
-  | isCommand newCommandPattern line = New $ mkCommand newCommandPattern line
-  | isCommand deleteCommandPattern line = Delete $ mkCommand deleteCommandPattern line
-  | otherwise = UnknownCommand line
-
-type CommandPattern = String
-
-newCommandPattern :: CommandPattern
-newCommandPattern = "new "
-
-deleteCommandPattern :: CommandPattern
-deleteCommandPattern = "del "
-
-mkCommand :: CommandPattern -> String -> String
-mkCommand cmdPattern line = drop (length cmdPattern) line
-
-isCommand :: CommandPattern -> String -> Bool
-isCommand cmdPattern line = isPrefixOf cmdPattern line
+  | otherwise = Command line
