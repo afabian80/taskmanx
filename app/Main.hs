@@ -2,7 +2,7 @@
 
 module Main (main) where
 
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import System.Directory (doesFileExist)
 import Text.Read (readMaybe)
 
@@ -210,9 +210,19 @@ main = do
       content <- readFile modelFile
       let contentLines = lines content
       let loadedTasks = map (\line -> read line :: Task) contentLines
-      loop Model {tasks = loadedTasks, quit = False, _error = Nothing}
+      loop
+        Model
+          { tasks = loadedTasks,
+            quit = False,
+            _error = Nothing
+          }
     else do
-      loop Model {tasks = [], quit = False, _error = Nothing}
+      loop
+        Model
+          { tasks = [],
+            quit = False,
+            _error = Nothing
+          }
 
 loop :: Model -> IO ()
 loop model = do
