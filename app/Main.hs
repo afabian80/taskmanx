@@ -57,7 +57,7 @@ handleLine line model =
     Right (SetTaskState st task) -> setTaskState model st task
     Left e -> model {_error = Just e}
   where
-    command = mkCommand line
+    command = commandFromInput line
 
 setTaskState :: Model -> TaskState -> String -> Model
 setTaskState model st task =
@@ -127,8 +127,8 @@ todoCommands = ["todo"]
 allCommands :: [String]
 allCommands = concat [addCommands, delCommands, doneCommands, todoCommands]
 
-mkCommand :: InputLine -> Either String Command
-mkCommand (InputLine line) =
+commandFromInput :: InputLine -> Either String Command
+commandFromInput (InputLine line) =
   case words line of
     [] -> Left "Empty command"
     [command]
