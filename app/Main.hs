@@ -197,22 +197,25 @@ renderTasks model =
       indexTaskPairs = zip [1 :: Int ..] model.tasks
 
       taskLines :: [String]
-      taskLines = map renderIndexedTask indexTaskPairs
+      taskLines = map (renderIndexedTask model.timestamp) indexTaskPairs
 
       modelError Nothing = ""
       modelError (Just e) = "ERROR: " ++ e
    in "\nEntries:\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
 
-renderIndexedTask :: (Int, Task) -> String
-renderIndexedTask (i, t) =
+renderIndexedTask :: Integer -> (Int, Task) -> String
+renderIndexedTask modelTime (i, t) =
   show i
     ++ ". "
     ++ show t.state
     ++ " "
     ++ t.title
     ++ " ("
-    ++ show t.ts
+    ++ renderTime modelTime t.ts
     ++ ")"
+
+renderTime :: Integer -> Integer -> String
+renderTime modelTime taskTime = show (modelTime - taskTime) ++ "s"
 
 main :: IO ()
 main = do
