@@ -15,6 +15,8 @@ data TaskState
   = Todo
   | Doing
   | Done
+  | Cancelled
+  | Suspended
   deriving (Show, Read, Eq)
 
 data Task = Task
@@ -125,10 +127,25 @@ todoCommands :: [String]
 todoCommands = ["todo"]
 
 doingCommands :: [String]
-doingCommands = ["doing"]
+doingCommands = ["doing", "now"]
+
+cancelCommands :: [String]
+cancelCommands = ["cancel", "canc"]
+
+suspendCommands :: [String]
+suspendCommands = ["suspend", "susp"]
 
 allCommands :: [String]
-allCommands = concat [addCommands, delCommands, doneCommands, todoCommands, doingCommands]
+allCommands =
+  concat
+    [ addCommands,
+      delCommands,
+      doneCommands,
+      todoCommands,
+      doingCommands,
+      cancelCommands,
+      suspendCommands
+    ]
 
 commandFromInput :: InputLine -> Either String Command
 commandFromInput (InputLine line) =
@@ -143,6 +160,8 @@ commandFromInput (InputLine line) =
       | command `elem` todoCommands -> mkCommand (SetTaskState Todo) args
       | command `elem` doingCommands -> mkCommand (SetTaskState Doing) args
       | command `elem` doneCommands -> mkCommand (SetTaskState Done) args
+      | command `elem` cancelCommands -> mkCommand (SetTaskState Cancelled) args
+      | command `elem` suspendCommands -> mkCommand (SetTaskState Suspended) args
       | otherwise -> Left ("Unknown command: " ++ command)
 
 mkCommand :: (String -> Command) -> [String] -> Either String Command
