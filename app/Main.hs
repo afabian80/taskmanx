@@ -10,7 +10,7 @@ modelFile :: FilePath
 modelFile = "model.txt"
 
 data Model = Model
-  { entries :: [String],
+  { tasks :: [String],
     quit :: Bool,
     _error :: Maybe String
   }
@@ -37,7 +37,7 @@ update msg model =
 handleLine :: String -> Model -> Model
 handleLine line model =
   case command of
-    Right (NewTask task) -> model {entries = model.entries ++ [task]}
+    Right (NewTask task) -> model {tasks = model.tasks ++ [task]}
     Right (DeleteTask task) -> deleteTask model task
     Left e -> model {_error = Just e}
   where
@@ -57,20 +57,20 @@ deleteTaskByIndex model index =
     Nothing -> model {_error = Just $ "No task with index " ++ show index}
     Just task -> deleteTaskByName model task
   where
-    pairs = zip [1 ..] model.entries
+    pairs = zip [1 ..] model.tasks
     taskMap = Map.fromList pairs
     taskAtIndex = Map.lookup index taskMap
 
 -- thePair = filter (\(i,t) -> if i == index then True else False) pairs
 deleteTaskByName :: Model -> String -> Model
 deleteTaskByName model task =
-  if task `elem` model.entries
+  if task `elem` model.tasks
     then
-      model {entries = newEntries}
+      model {tasks = newEntries}
     else
       model {_error = Just $ "Cannot delete " ++ task}
   where
-    newEntries = filter (/= task) model.entries
+    newEntries = filter (/= task) model.tasks
 
 addCommands :: [String]
 addCommands = ["new", "add"]
@@ -117,7 +117,7 @@ debugModel model = "\n\n" ++ show model ++ "\n"
 
 renderEntries :: Model -> String
 renderEntries model =
-  let pairs = zip [1 :: Int ..] model.entries
+  let pairs = zip [1 :: Int ..] model.tasks
       entryList = map showEntry pairs
       showEntry (i, e) = show i ++ ". " ++ e
       modelError Nothing = ""
@@ -130,9 +130,9 @@ main = do
   if exists
     then do
       content <- readFile modelFile
-      loop Model {entries = lines content, quit = False, _error = Nothing}
+      loop Model {tasks = lines content, quit = False, _error = Nothing}
     else do
-      loop Model {entries = [], quit = False, _error = Nothing}
+      loop Model {tasks = [], quit = False, _error = Nothing}
 
 loop :: Model -> IO ()
 loop model = do
@@ -143,7 +143,7 @@ loop model = do
   let newModel = update msg model
   if newModel.quit == True
     then do
-      writeFile modelFile (unlines newModel.entries)
+      writeFile modelFile (unlines newModel.tasks)
       putStrLn "Bye!"
     else
       loop newModel
