@@ -23,7 +23,8 @@ data TaskState
 
 data Task = Task
   { title :: String,
-    state :: TaskState
+    state :: TaskState,
+    ts :: Integer
   }
   deriving (Show, Read, Eq)
 
@@ -59,7 +60,7 @@ handleLine line model =
   case command of
     Right (NewTask task) ->
       model
-        { tasks = model.tasks ++ [Task task Todo],
+        { tasks = model.tasks ++ [Task task Todo model.timestamp],
           _error = Nothing
         }
     Right (DeleteTask task) -> deleteTask model task
@@ -82,14 +83,14 @@ setTaskStateByIndexInt model index newState =
     Nothing -> model {_error = Just $ "No task with index " ++ show index}
     Just task ->
       model
-        { tasks = map (updateTaskState task newState) model.tasks,
+        { tasks = map (updateTaskState task newState model.timestamp) model.tasks,
           _error = Nothing
         }
   where
     taskAtIndex = lookupTaskAtIndex model.tasks index
-    updateTaskState taskToMatch st otherTask =
+    updateTaskState taskToMatch st newTS otherTask =
       if otherTask == taskToMatch
-        then otherTask {state = st}
+        then otherTask {state = st, ts = newTS}
         else otherTask
 
 deleteTask :: Model -> String -> Model
@@ -199,7 +200,7 @@ renderTasks model =
       taskLines = map renderIndexedTask indexTaskPairs
 
       renderIndexedTask :: (Int, Task) -> String
-      renderIndexedTask (i, t) = show i ++ ". " ++ show t.state ++ " " ++ t.title
+      renderIndexedTask (i, t) = show i ++ ". " ++ show t.state ++ " " ++ t.title ++ " (" ++ show t.ts ++ ")"
 
       modelError Nothing = ""
       modelError (Just e) = "ERROR: " ++ e
