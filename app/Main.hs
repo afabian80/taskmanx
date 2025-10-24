@@ -28,7 +28,8 @@ data Task = Task
 data Model = Model
   { tasks :: [Task],
     quit :: Bool,
-    _error :: Maybe String
+    _error :: Maybe String,
+    timestamp :: Integer
   }
   deriving (Show)
 
@@ -142,7 +143,7 @@ cancelCommands :: [String]
 cancelCommands = ["cancel", "canc"]
 
 suspendCommands :: [String]
-suspendCommands = ["suspend", "susp"]
+suspendCommands = ["suspend"]
 
 allCommands :: [String]
 allCommands =
@@ -214,14 +215,16 @@ main = do
         Model
           { tasks = loadedTasks,
             quit = False,
-            _error = Nothing
+            _error = Nothing,
+            timestamp = 0
           }
     else do
       loop
         Model
           { tasks = [],
             quit = False,
-            _error = Nothing
+            _error = Nothing,
+            timestamp = 0
           }
 
 loop :: Model -> IO ()
