@@ -121,8 +121,11 @@ delCommands = ["del", "delete", "rm", "remove"]
 doneCommands :: [String]
 doneCommands = ["done"]
 
+todoCommands :: [String]
+todoCommands = ["todo"]
+
 allCommands :: [String]
-allCommands = concat [addCommands, delCommands]
+allCommands = concat [addCommands, delCommands, doneCommands, todoCommands]
 
 mkCommand :: InputLine -> Either String Command
 mkCommand (InputLine line) =
@@ -134,6 +137,7 @@ mkCommand (InputLine line) =
     (command : args)
       | command `elem` addCommands -> mkNewCommand args
       | command `elem` delCommands -> mkDelCommand args
+      | command `elem` todoCommands -> mkTodoCommand args
       | command `elem` doneCommands -> mkDoneCommand args
       | otherwise -> Left ("Unknown command: " ++ command)
 
@@ -152,6 +156,14 @@ mkDelCommand args =
       Left "Not enough arguments!"
     else
       Right (DeleteTask (unwords args))
+
+mkTodoCommand :: [String] -> Either String Command
+mkTodoCommand args =
+  if null args
+    then
+      Left "Not enough arguments!"
+    else
+      Right (SetTaskState Todo (unwords args))
 
 mkDoneCommand :: [String] -> Either String Command
 mkDoneCommand args =
