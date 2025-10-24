@@ -54,7 +54,11 @@ update msg model =
 handleLine :: InputLine -> Model -> Model
 handleLine line model =
   case command of
-    Right (NewTask task) -> model {tasks = model.tasks ++ [Task task Todo]}
+    Right (NewTask task) ->
+      model
+        { tasks = model.tasks ++ [Task task Todo],
+          _error = Nothing
+        }
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Left e -> model {_error = Just e}
@@ -73,7 +77,11 @@ setTaskStateByIndexInt :: Model -> Int -> TaskState -> Model
 setTaskStateByIndexInt model index newState =
   case taskAtIndex of
     Nothing -> model {_error = Just $ "No task with index " ++ show index}
-    Just task -> model {tasks = map (updateTaskState task newState) model.tasks}
+    Just task ->
+      model
+        { tasks = map (updateTaskState task newState) model.tasks,
+          _error = Nothing
+        }
   where
     taskAtIndex = lookupTaskAtIndex model.tasks index
     updateTaskState taskToMatch st otherTask =
@@ -108,7 +116,7 @@ deleteTaskByTitle :: Model -> String -> Model
 deleteTaskByTitle model taskTitle =
   if taskTitle `elem` taskTitles
     then
-      model {tasks = newTaskList}
+      model {tasks = newTaskList, _error = Nothing}
     else
       model {_error = Just $ "Cannot delete " ++ taskTitle}
   where
