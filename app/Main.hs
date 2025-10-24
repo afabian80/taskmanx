@@ -56,33 +56,35 @@ handleLine line model =
   case command of
     Right (NewTask task) -> model {tasks = model.tasks ++ [Task task Todo]}
     Right (DeleteTask task) -> deleteTask model task
-    Right (SetTaskState st task) -> setTaskState model st task
+    Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Left e -> model {_error = Just e}
   where
     command = commandFromInput line
 
-setTaskState :: Model -> TaskState -> String -> Model
-setTaskState model st task =
+setTaskStateByIndexText :: Model -> String -> TaskState -> Model
+setTaskStateByIndexText model indexText newState =
   case maybeIndex of
     Nothing -> model {_error = Just "This command needs an index argument!"}
-    Just index -> setTaskStateByIndex model index st
+    Just index -> setTaskStateByIndexInt model index newState
   where
-    maybeIndex = readMaybe task :: Maybe Int
+    maybeIndex = readMaybe indexText :: Maybe Int
 
-setTaskStateByIndex :: Model -> Int -> TaskState -> Model
-setTaskStateByIndex model index st =
+setTaskStateByIndexInt :: Model -> Int -> TaskState -> Model
+setTaskStateByIndexInt model index newState =
   case taskAtIndex of
     Nothing -> model {_error = Just $ "No task with index " ++ show index}
-    Just task -> model {tasks = map (updateTaskState task st) model.tasks}
+    Just task -> model {tasks = map (updateTaskState task newState) model.tasks}
   where
     taskAtIndex = lookupTaskAtIndex model.tasks index
-    updateTaskState theTask newState aTask =
-      if aTask == theTask then aTask {state = newState} else aTask
+    updateTaskState taskToMatch st otherTask =
+      if otherTask == taskToMatch
+        then otherTask {state = st}
+        else otherTask
 
 deleteTask :: Model -> String -> Model
 deleteTask model task =
   case maybeIndex of
-    Nothing -> deleteTaskByName model task
+    Nothing -> deleteTaskByTitle model task
     Just index -> deleteTaskByIndex model index
   where
     maybeIndex = readMaybe task :: Maybe Int
@@ -91,27 +93,26 @@ deleteTaskByIndex :: Model -> Int -> Model
 deleteTaskByIndex model index =
   case taskAtIndex of
     Nothing -> model {_error = Just $ "No task with index " ++ show index}
-    Just task -> deleteTaskByName model task.title
+    Just task -> deleteTaskByTitle model task.title
   where
     taskAtIndex = lookupTaskAtIndex model.tasks index
 
 lookupTaskAtIndex :: [Task] -> Int -> Maybe Task
-lookupTaskAtIndex ts index =
+lookupTaskAtIndex taskList index =
   Map.lookup index taskMap
   where
-    pairs = zip [1 ..] ts
+    pairs = zip [1 ..] taskList
     taskMap = Map.fromList pairs
 
--- thePair = filter (\(i,t) -> if i == index then True else False) pairs
-deleteTaskByName :: Model -> String -> Model
-deleteTaskByName model task =
-  if task `elem` taskTitles
+deleteTaskByTitle :: Model -> String -> Model
+deleteTaskByTitle model taskTitle =
+  if taskTitle `elem` taskTitles
     then
-      model {tasks = newEntries}
+      model {tasks = newTaskList}
     else
-      model {_error = Just $ "Cannot delete " ++ task}
+      model {_error = Just $ "Cannot delete " ++ taskTitle}
   where
-    newEntries = filter (\t -> t.title /= task) model.tasks
+    newTaskList = filter (\t -> t.title /= taskTitle) model.tasks
     taskTitles = map title model.tasks
 
 addCommands :: [String]
@@ -155,43 +156,43 @@ commandFromInput (InputLine line) =
       | command `elem` allCommands -> Left $ "Not enough arguments for " ++ command
       | otherwise -> Left ("Unknown command: " ++ command)
     (command : args)
-      | command `elem` addCommands -> mkCommand NewTask args
-      | command `elem` delCommands -> mkCommand DeleteTask args
-      | command `elem` todoCommands -> mkCommand (SetTaskState Todo) args
-      | command `elem` doingCommands -> mkCommand (SetTaskState Doing) args
-      | command `elem` doneCommands -> mkCommand (SetTaskState Done) args
-      | command `elem` cancelCommands -> mkCommand (SetTaskState Cancelled) args
-      | command `elem` suspendCommands -> mkCommand (SetTaskState Suspended) args
+      | command `elem` addCommands -> makeSafeCommand NewTask args
+      | command `elem` delCommands -> makeSafeCommand DeleteTask args
+      | command `elem` todoCommands -> makeSafeCommand (SetTaskState Todo) args
+      | command `elem` doingCommands -> makeSafeCommand (SetTaskState Doing) args
+      | command `elem` doneCommands -> makeSafeCommand (SetTaskState Done) args
+      | command `elem` cancelCommands -> makeSafeCommand (SetTaskState Cancelled) args
+      | command `elem` suspendCommands -> makeSafeCommand (SetTaskState Suspended) args
       | otherwise -> Left ("Unknown command: " ++ command)
 
-mkCommand :: (String -> Command) -> [String] -> Either String Command
-mkCommand constructor args =
+makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
+makeSafeCommand taskConstructor args =
   if null args
     then
       Left "Not enough arguments!"
     else
-      Right (constructor (unwords args))
+      Right (taskConstructor (unwords args))
 
 render :: Model -> String
-render model = renderEntries model ++ debugModel model
+render model = renderTasks model ++ renderDebugInfo model
 
-debugModel :: Model -> String
-debugModel model = "\n\n" ++ show model ++ "\n"
+renderDebugInfo :: Model -> String
+renderDebugInfo model = "\n\n" ++ show model ++ "\n"
 
-renderEntries :: Model -> String
-renderEntries model =
-  let pairs :: [(Int, Task)]
-      pairs = zip [1 :: Int ..] model.tasks
+renderTasks :: Model -> String
+renderTasks model =
+  let indexTaskPairs :: [(Int, Task)]
+      indexTaskPairs = zip [1 :: Int ..] model.tasks
 
-      entryList :: [String]
-      entryList = map showTask pairs
+      taskLines :: [String]
+      taskLines = map renderIndexedTask indexTaskPairs
 
-      showTask :: (Int, Task) -> String
-      showTask (i, t) = show i ++ ". " ++ show t.state ++ " " ++ t.title
+      renderIndexedTask :: (Int, Task) -> String
+      renderIndexedTask (i, t) = show i ++ ". " ++ show t.state ++ " " ++ t.title
 
       modelError Nothing = ""
       modelError (Just e) = "ERROR: " ++ e
-   in "\nEntries:\n" ++ unlines entryList ++ "\n" ++ modelError model._error
+   in "\nEntries:\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
 
 main :: IO ()
 main = do
@@ -208,9 +209,9 @@ main = do
 loop :: Model -> IO ()
 loop model = do
   putStrLn $ render model
-  putStrLn "Enter a command. 'q' to quit."
+  putStrLn "Enter a command ('q' to quit): "
   line <- getLine
-  let msg = lineToMsg (InputLine line)
+  let msg = inputLineToMsg (InputLine line)
   let newModel = update msg model
   if newModel.quit == True
     then do
@@ -219,8 +220,8 @@ loop model = do
     else
       loop newModel
 
-lineToMsg :: InputLine -> Msg
-lineToMsg (InputLine line)
+inputLineToMsg :: InputLine -> Msg
+inputLineToMsg (InputLine line)
   | line == "" = Nope
   | line == "q" = Quit
   | otherwise = Command (InputLine line)
