@@ -39,6 +39,7 @@ library
       base >=4.7 && <5
     , containers
     , directory
+    , time
   default-language: Haskell2010
 
 executable elmlike-exe
@@ -57,6 +58,7 @@ executable elmlike-exe
     , containers
     , directory
     , elmlike
+    , time
   default-language: Haskell2010
 
 test-suite elmlike-test
@@ -76,4 +78,5 @@ test-suite elmlike-test
     , containers
     , directory
     , elmlike
+    , time
   default-language: Haskell2010

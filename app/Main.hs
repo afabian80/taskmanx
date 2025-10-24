@@ -3,6 +3,8 @@
 module Main (main) where
 
 import Data.Map qualified as Map
+import Data.Time (getCurrentTime, nominalDiffTimeToSeconds)
+import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import System.Directory (doesFileExist)
 import Text.Read (readMaybe)
 
@@ -233,7 +235,13 @@ loop model = do
   putStrLn "Enter a command ('q' to quit): "
   line <- getLine
   let msg = inputLineToMsg (InputLine line)
-  let newModel = update msg model
+  currentTime <- getCurrentTime
+  let newModel =
+        update
+          msg
+          model
+            { timestamp = floor (nominalDiffTimeToSeconds (utcTimeToPOSIXSeconds currentTime))
+            }
   if newModel.quit == True
     then do
       writeFile modelFile (unlines (map show newModel.tasks))
