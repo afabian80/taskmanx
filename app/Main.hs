@@ -11,13 +11,17 @@ newtype InputLine = InputLine String deriving (Show)
 modelFile :: FilePath
 modelFile = "model.txt"
 
-data TaskState = Todo | Doing | Done deriving (Show, Read)
+data TaskState
+  = Todo
+  | Doing
+  | Done
+  deriving (Show, Read, Eq)
 
 data Task = Task
   { title :: String,
     state :: TaskState
   }
-  deriving (Show, Read)
+  deriving (Show, Read, Eq)
 
 data Model = Model
   { tasks :: [Task],
@@ -35,6 +39,7 @@ data Msg
 data Command
   = NewTask String
   | DeleteTask String
+  | SetTaskState TaskState String
   deriving (Show)
 
 update :: Msg -> Model -> Model
@@ -49,9 +54,28 @@ handleLine line model =
   case command of
     Right (NewTask task) -> model {tasks = model.tasks ++ [Task task Todo]}
     Right (DeleteTask task) -> deleteTask model task
+    Right (SetTaskState st task) -> setTaskState model st task
     Left e -> model {_error = Just e}
   where
     command = mkCommand line
+
+setTaskState :: Model -> TaskState -> String -> Model
+setTaskState model st task =
+  case maybeIndex of
+    Nothing -> model {_error = Just "This command needs an index argument!"}
+    Just index -> setTaskStateByIndex model index st
+  where
+    maybeIndex = readMaybe task :: Maybe Int
+
+setTaskStateByIndex :: Model -> Int -> TaskState -> Model
+setTaskStateByIndex model index st =
+  case taskAtIndex of
+    Nothing -> model {_error = Just $ "No task with index " ++ show index}
+    Just task -> model {tasks = map (updateTaskState task st) model.tasks}
+  where
+    taskAtIndex = lookupTaskAtIndex model.tasks index
+    updateTaskState theTask newState aTask =
+      if aTask == theTask then aTask {state = newState} else aTask
 
 deleteTask :: Model -> String -> Model
 deleteTask model task =
@@ -67,9 +91,14 @@ deleteTaskByIndex model index =
     Nothing -> model {_error = Just $ "No task with index " ++ show index}
     Just task -> deleteTaskByName model task.title
   where
-    pairs = zip [1 ..] model.tasks
+    taskAtIndex = lookupTaskAtIndex model.tasks index
+
+lookupTaskAtIndex :: [Task] -> Int -> Maybe Task
+lookupTaskAtIndex ts index =
+  Map.lookup index taskMap
+  where
+    pairs = zip [1 ..] ts
     taskMap = Map.fromList pairs
-    taskAtIndex = Map.lookup index taskMap
 
 -- thePair = filter (\(i,t) -> if i == index then True else False) pairs
 deleteTaskByName :: Model -> String -> Model
@@ -89,6 +118,9 @@ addCommands = ["new", "add"]
 delCommands :: [String]
 delCommands = ["del", "delete", "rm", "remove"]
 
+doneCommands :: [String]
+doneCommands = ["done"]
+
 allCommands :: [String]
 allCommands = concat [addCommands, delCommands]
 
@@ -102,6 +134,7 @@ mkCommand (InputLine line) =
     (command : args)
       | command `elem` addCommands -> mkNewCommand args
       | command `elem` delCommands -> mkDelCommand args
+      | command `elem` doneCommands -> mkDoneCommand args
       | otherwise -> Left ("Unknown command: " ++ command)
 
 mkNewCommand :: [String] -> Either String Command
@@ -119,6 +152,14 @@ mkDelCommand args =
       Left "Not enough arguments!"
     else
       Right (DeleteTask (unwords args))
+
+mkDoneCommand :: [String] -> Either String Command
+mkDoneCommand args =
+  if null args
+    then
+      Left "Not enough arguments!"
+    else
+      Right (SetTaskState Done (unwords args))
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
