@@ -124,8 +124,11 @@ doneCommands = ["done"]
 todoCommands :: [String]
 todoCommands = ["todo"]
 
+doingCommands :: [String]
+doingCommands = ["doing"]
+
 allCommands :: [String]
-allCommands = concat [addCommands, delCommands, doneCommands, todoCommands]
+allCommands = concat [addCommands, delCommands, doneCommands, todoCommands, doingCommands]
 
 commandFromInput :: InputLine -> Either String Command
 commandFromInput (InputLine line) =
@@ -138,6 +141,7 @@ commandFromInput (InputLine line) =
       | command `elem` addCommands -> mkCommand NewTask args
       | command `elem` delCommands -> mkCommand DeleteTask args
       | command `elem` todoCommands -> mkCommand (SetTaskState Todo) args
+      | command `elem` doingCommands -> mkCommand (SetTaskState Doing) args
       | command `elem` doneCommands -> mkCommand (SetTaskState Done) args
       | otherwise -> Left ("Unknown command: " ++ command)
 
