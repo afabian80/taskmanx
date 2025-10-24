@@ -6,6 +6,8 @@ import qualified Data.Map as Map
 import System.Directory (doesFileExist)
 import Text.Read (readMaybe)
 
+newtype InputLine = InputLine String deriving (Show)
+
 modelFile :: FilePath
 modelFile = "model.txt"
 
@@ -19,7 +21,7 @@ data Model = Model
 data Msg
   = Nope
   | Quit
-  | Command String
+  | Command InputLine
   deriving (Show)
 
 data Command
@@ -34,7 +36,7 @@ update msg model =
     Nope -> model {_error = Nothing}
     Command line -> handleLine line model
 
-handleLine :: String -> Model -> Model
+handleLine :: InputLine -> Model -> Model
 handleLine line model =
   case command of
     Right (NewTask task) -> model {tasks = model.tasks ++ [task]}
@@ -81,8 +83,8 @@ delCommands = ["del", "delete", "rm", "remove"]
 allCommands :: [String]
 allCommands = concat [addCommands, delCommands]
 
-mkCommand :: String -> Either String Command
-mkCommand line =
+mkCommand :: InputLine -> Either String Command
+mkCommand (InputLine line) =
   case words line of
     [] -> Left "Empty command"
     [command]
@@ -139,7 +141,7 @@ loop model = do
   putStrLn $ render model
   putStrLn "Enter a command. 'q' to quit."
   line <- getLine
-  let msg = lineToMsg line
+  let msg = lineToMsg (InputLine line)
   let newModel = update msg model
   if newModel.quit == True
     then do
@@ -148,8 +150,8 @@ loop model = do
     else
       loop newModel
 
-lineToMsg :: String -> Msg
-lineToMsg line
+lineToMsg :: InputLine -> Msg
+lineToMsg (InputLine line)
   | line == "" = Nope
   | line == "q" = Quit
-  | otherwise = Command line
+  | otherwise = Command (InputLine line)
