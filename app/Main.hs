@@ -135,43 +135,19 @@ commandFromInput (InputLine line) =
       | command `elem` allCommands -> Left $ "Not enough arguments for " ++ command
       | otherwise -> Left ("Unknown command: " ++ command)
     (command : args)
-      | command `elem` addCommands -> mkNewCommand args
-      | command `elem` delCommands -> mkDelCommand args
-      | command `elem` todoCommands -> mkTodoCommand args
-      | command `elem` doneCommands -> mkDoneCommand args
+      | command `elem` addCommands -> mkCommand NewTask args
+      | command `elem` delCommands -> mkCommand DeleteTask args
+      | command `elem` todoCommands -> mkCommand (SetTaskState Todo) args
+      | command `elem` doneCommands -> mkCommand (SetTaskState Done) args
       | otherwise -> Left ("Unknown command: " ++ command)
 
-mkNewCommand :: [String] -> Either String Command
-mkNewCommand args =
+mkCommand :: (String -> Command) -> [String] -> Either String Command
+mkCommand constructor args =
   if null args
     then
       Left "Not enough arguments!"
     else
-      Right (NewTask (unwords args))
-
-mkDelCommand :: [String] -> Either String Command
-mkDelCommand args =
-  if null args
-    then
-      Left "Not enough arguments!"
-    else
-      Right (DeleteTask (unwords args))
-
-mkTodoCommand :: [String] -> Either String Command
-mkTodoCommand args =
-  if null args
-    then
-      Left "Not enough arguments!"
-    else
-      Right (SetTaskState Todo (unwords args))
-
-mkDoneCommand :: [String] -> Either String Command
-mkDoneCommand args =
-  if null args
-    then
-      Left "Not enough arguments!"
-    else
-      Right (SetTaskState Done (unwords args))
+      Right (constructor (unwords args))
 
 render :: Model -> String
 render model = renderEntries model ++ debugModel model
