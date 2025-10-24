@@ -199,12 +199,20 @@ renderTasks model =
       taskLines :: [String]
       taskLines = map renderIndexedTask indexTaskPairs
 
-      renderIndexedTask :: (Int, Task) -> String
-      renderIndexedTask (i, t) = show i ++ ". " ++ show t.state ++ " " ++ t.title ++ " (" ++ show t.ts ++ ")"
-
       modelError Nothing = ""
       modelError (Just e) = "ERROR: " ++ e
    in "\nEntries:\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
+
+renderIndexedTask :: (Int, Task) -> String
+renderIndexedTask (i, t) =
+  show i
+    ++ ". "
+    ++ show t.state
+    ++ " "
+    ++ t.title
+    ++ " ("
+    ++ show t.ts
+    ++ ")"
 
 main :: IO ()
 main = do
