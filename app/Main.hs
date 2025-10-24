@@ -11,8 +11,12 @@ newtype InputLine = InputLine String deriving (Show)
 modelFile :: FilePath
 modelFile = "model.txt"
 
+data Task = Task
+  {title :: String}
+  deriving (Show, Read)
+
 data Model = Model
-  { tasks :: [String],
+  { tasks :: [Task],
     quit :: Bool,
     _error :: Maybe String
   }
@@ -39,7 +43,7 @@ update msg model =
 handleLine :: InputLine -> Model -> Model
 handleLine line model =
   case command of
-    Right (NewTask task) -> model {tasks = model.tasks ++ [task]}
+    Right (NewTask task) -> model {tasks = model.tasks ++ [Task task]}
     Right (DeleteTask task) -> deleteTask model task
     Left e -> model {_error = Just e}
   where
@@ -57,7 +61,7 @@ deleteTaskByIndex :: Model -> Int -> Model
 deleteTaskByIndex model index =
   case taskAtIndex of
     Nothing -> model {_error = Just $ "No task with index " ++ show index}
-    Just task -> deleteTaskByName model task
+    Just task -> deleteTaskByName model task.title
   where
     pairs = zip [1 ..] model.tasks
     taskMap = Map.fromList pairs
@@ -66,13 +70,14 @@ deleteTaskByIndex model index =
 -- thePair = filter (\(i,t) -> if i == index then True else False) pairs
 deleteTaskByName :: Model -> String -> Model
 deleteTaskByName model task =
-  if task `elem` model.tasks
+  if task `elem` taskTitles
     then
       model {tasks = newEntries}
     else
       model {_error = Just $ "Cannot delete " ++ task}
   where
-    newEntries = filter (/= task) model.tasks
+    newEntries = filter (\t -> t.title /= task) model.tasks
+    taskTitles = map title model.tasks
 
 addCommands :: [String]
 addCommands = ["new", "add"]
@@ -119,9 +124,15 @@ debugModel model = "\n\n" ++ show model ++ "\n"
 
 renderEntries :: Model -> String
 renderEntries model =
-  let pairs = zip [1 :: Int ..] model.tasks
+  let pairs :: [(Int, Task)]
+      pairs = zip [1 :: Int ..] model.tasks
+
+      entryList :: [String]
       entryList = map showEntry pairs
-      showEntry (i, e) = show i ++ ". " ++ e
+
+      showEntry :: (Int, Task) -> String
+      showEntry (i, t) = show i ++ ". " ++ t.title
+
       modelError Nothing = ""
       modelError (Just e) = "ERROR: " ++ e
    in "\nEntries:\n" ++ unlines entryList ++ "\n" ++ modelError model._error
@@ -132,7 +143,9 @@ main = do
   if exists
     then do
       content <- readFile modelFile
-      loop Model {tasks = lines content, quit = False, _error = Nothing}
+      let contentLines = lines content
+      let loadedTasks = map (\line -> read line :: Task) contentLines
+      loop Model {tasks = loadedTasks, quit = False, _error = Nothing}
     else do
       loop Model {tasks = [], quit = False, _error = Nothing}
 
@@ -145,7 +158,7 @@ loop model = do
   let newModel = update msg model
   if newModel.quit == True
     then do
-      writeFile modelFile (unlines newModel.tasks)
+      writeFile modelFile (unlines (map show newModel.tasks))
       putStrLn "Bye!"
     else
       loop newModel
