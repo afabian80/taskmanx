@@ -220,6 +220,7 @@ renderTime modelTime taskTime = show (modelTime - taskTime) ++ "s"
 main :: IO ()
 main = do
   exists <- doesFileExist modelFile
+  currentSeconds <- getCurrentSeconds
   if exists
     then do
       content <- readFile modelFile
@@ -230,7 +231,7 @@ main = do
           { tasks = loadedTasks,
             quit = False,
             _error = Nothing,
-            timestamp = 0
+            timestamp = currentSeconds
           }
     else do
       loop
@@ -238,7 +239,7 @@ main = do
           { tasks = [],
             quit = False,
             _error = Nothing,
-            timestamp = 0
+            timestamp = currentSeconds
           }
 
 loop :: Model -> IO ()
@@ -247,12 +248,12 @@ loop model = do
   putStrLn "Enter a command ('q' to quit): "
   line <- getLine
   let msg = inputLineToMsg (InputLine line)
-  currentTime <- getCurrentTime
+  currentSeconds <- getCurrentSeconds
   let newModel =
         update
           msg
           model
-            { timestamp = floor (nominalDiffTimeToSeconds (utcTimeToPOSIXSeconds currentTime))
+            { timestamp = currentSeconds
             }
   if newModel.quit == True
     then do
@@ -260,6 +261,11 @@ loop model = do
       putStrLn "Bye!"
     else
       loop newModel
+
+getCurrentSeconds :: IO Integer
+getCurrentSeconds = do
+  currentTime <- getCurrentTime
+  return $ floor $ nominalDiffTimeToSeconds $ utcTimeToPOSIXSeconds currentTime
 
 inputLineToMsg :: InputLine -> Msg
 inputLineToMsg (InputLine line)
