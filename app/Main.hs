@@ -11,8 +11,12 @@ newtype InputLine = InputLine String deriving (Show)
 modelFile :: FilePath
 modelFile = "model.txt"
 
+data TaskState = Todo | Doing | Done deriving (Show, Read)
+
 data Task = Task
-  {title :: String}
+  { title :: String,
+    state :: TaskState
+  }
   deriving (Show, Read)
 
 data Model = Model
@@ -43,7 +47,7 @@ update msg model =
 handleLine :: InputLine -> Model -> Model
 handleLine line model =
   case command of
-    Right (NewTask task) -> model {tasks = model.tasks ++ [Task task]}
+    Right (NewTask task) -> model {tasks = model.tasks ++ [Task task Todo]}
     Right (DeleteTask task) -> deleteTask model task
     Left e -> model {_error = Just e}
   where
@@ -128,10 +132,10 @@ renderEntries model =
       pairs = zip [1 :: Int ..] model.tasks
 
       entryList :: [String]
-      entryList = map showEntry pairs
+      entryList = map showTask pairs
 
-      showEntry :: (Int, Task) -> String
-      showEntry (i, t) = show i ++ ". " ++ t.title
+      showTask :: (Int, Task) -> String
+      showTask (i, t) = show i ++ ". " ++ show t.state ++ " " ++ t.title
 
       modelError Nothing = ""
       modelError (Just e) = "ERROR: " ++ e
