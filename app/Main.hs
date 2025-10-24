@@ -19,7 +19,14 @@ data TaskState
   | Done
   | Cancelled
   | Suspended
-  deriving (Show, Read, Eq)
+  deriving (Read, Eq)
+
+instance Show TaskState where
+  show Todo = "TODO  "
+  show Doing = "DOING "
+  show Done = "DONE  "
+  show Cancelled = "CANC  "
+  show Suspended = "SUSP  "
 
 data Task = Task
   { title :: String,
