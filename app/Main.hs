@@ -214,8 +214,38 @@ renderIndexedTask modelTime (i, t) =
     ++ renderTime modelTime t.ts
     ++ ")"
 
+secondsInDay :: Integer
+secondsInDay = 86400
+
+secondsInHour :: Integer
+secondsInHour = 3600
+
+secondsInMinute :: Integer
+secondsInMinute = 60
+
+toDHMS :: Integer -> (Integer, Integer, Integer, Integer)
+toDHMS totalSeconds =
+  let days = totalSeconds `div` secondsInDay
+      remainingDay = totalSeconds `mod` secondsInDay
+
+      hours = remainingDay `div` secondsInHour
+      remainingHour = remainingDay `mod` secondsInHour
+
+      minutes = remainingHour `div` secondsInMinute
+
+      seconds = remainingHour `mod` secondsInMinute
+   in (days, hours, minutes, seconds)
+
 renderTime :: Integer -> Integer -> String
-renderTime modelTime taskTime = show (modelTime - taskTime) ++ "s"
+renderTime modelTime taskTime = showTime (d, h, m, s)
+  where
+    (d, h, m, s) = toDHMS (modelTime - taskTime)
+
+showTime :: (Integer, Integer, Integer, Integer) -> String
+showTime (0, 0, 0, s) = show s ++ "s"
+showTime (0, 0, m, s) = show m ++ "m" ++ show s ++ "s"
+showTime (0, h, m, s) = show h ++ "h" ++ show m ++ "m" ++ show s ++ "s"
+showTime (d, h, m, s) = show d ++ "d" ++ show h ++ "h" ++ show m ++ "m" ++ show s ++ "s"
 
 main :: IO ()
 main = do
