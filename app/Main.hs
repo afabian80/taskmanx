@@ -2,6 +2,7 @@
 
 module Main (main) where
 
+import Data.List (isPrefixOf)
 import Data.Map qualified as Map
 import Data.Time (getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
@@ -45,7 +46,8 @@ colorize color text = show color ++ text ++ show ColorReset
 data Task = Task
   { title :: String,
     state :: TaskState,
-    ts :: Integer
+    ts :: Integer,
+    deadlineMinutes :: Maybe Integer
   }
   deriving (Show, Read, Eq)
 
@@ -92,16 +94,48 @@ cleanUpTasks model = newTasks
 handleLine :: InputLine -> Model -> Model
 handleLine line model =
   case command of
-    Right (NewTask task) ->
+    Right (NewTask taskTitle) ->
       model
-        { tasks = model.tasks ++ [Task task Todo model.timestamp],
+        { tasks = model.tasks ++ [newTask],
           _error = Nothing
         }
+      where
+        newTask =
+          Task
+            { title = taskTitle,
+              state = Todo,
+              ts = model.timestamp,
+              deadlineMinutes = calculateDeadline taskTitle model.timestamp
+            }
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Left e -> model {_error = Just e}
   where
     command = commandFromInput line
+
+-- If the text contains "@number"" exactly once then return the number as minutes
+-- added to the second parameter in seconds
+calculateDeadline :: String -> Integer -> Maybe Integer
+calculateDeadline taskTitle startTimeSeconds = endTime
+  where
+    endTime = if duration == 0 then Nothing else Just (startTimeSeconds + 60 * duration)
+
+    atWords = filter (isPrefixOf "@") (words taskTitle)
+
+    getDurationText [d] = Just d
+    getDurationText _ = Nothing
+
+    maybeDurationText = getDurationText atWords
+
+    durationText Nothing = "0"
+    durationText (Just text) = drop 1 text
+
+    durationInt = readMaybe (durationText maybeDurationText) :: Maybe Integer
+
+    getDurationInt Nothing = 0
+    getDurationInt (Just i) = i
+
+    duration = getDurationInt durationInt
 
 setTaskStateByIndexText :: Model -> String -> TaskState -> Model
 setTaskStateByIndexText model indexText newState =
