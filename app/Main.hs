@@ -53,7 +53,8 @@ data Model = Model
   { tasks :: [Task],
     quit :: Bool,
     _error :: Maybe String,
-    timestamp :: Integer
+    timestamp :: Integer,
+    checkpoint :: Integer
   }
   deriving (Show)
 
@@ -67,6 +68,7 @@ data Command
   = NewTask String
   | DeleteTask String
   | SetTaskState TaskState String
+  | Checkpoint String
   deriving (Show)
 
 update :: Msg -> Model -> Model
@@ -86,6 +88,7 @@ handleLine line model =
         }
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
+    Right (Checkpoint _) -> model {checkpoint = model.timestamp}
     Left e -> model {_error = Just e}
   where
     command = commandFromInput line
@@ -169,6 +172,9 @@ cancelCommands = ["cancel", "canc"]
 suspendCommands :: [String]
 suspendCommands = ["suspend"]
 
+checkpointCommands :: [String]
+checkpointCommands = ["checkpoint", "cp"]
+
 allCommands :: [String]
 allCommands =
   concat
@@ -178,7 +184,8 @@ allCommands =
       todoCommands,
       doingCommands,
       cancelCommands,
-      suspendCommands
+      suspendCommands,
+      checkpointCommands
     ]
 
 commandFromInput :: InputLine -> Either String Command
@@ -196,6 +203,7 @@ commandFromInput (InputLine line) =
       | command `elem` doneCommands -> makeSafeCommand (SetTaskState Done) args
       | command `elem` cancelCommands -> makeSafeCommand (SetTaskState Cancelled) args
       | command `elem` suspendCommands -> makeSafeCommand (SetTaskState Suspended) args
+      | command `elem` checkpointCommands -> makeSafeCommand Checkpoint args
       | otherwise -> Left ("Unknown command: " ++ command)
 
 makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
@@ -285,22 +293,33 @@ main = do
     then do
       content <- readFile modelFile
       let contentLines = lines content
-      let loadedTasks = map (\line -> read line :: Task) contentLines
-      loop
-        Model
-          { tasks = loadedTasks,
-            quit = False,
-            _error = Nothing,
-            timestamp = currentSeconds
-          }
+      let checkpointLines = take 1 contentLines
+      let maybeCheckpointInteger = loadMaybeCheckpoint checkpointLines
+      let loadedTasks = map (\line -> read line :: Task) (drop 1 contentLines)
+      case maybeCheckpointInteger of
+        Nothing -> putStrLn "Error in checkpoint line!"
+        Just cp ->
+          loop
+            Model
+              { tasks = loadedTasks,
+                quit = False,
+                _error = Nothing,
+                timestamp = currentSeconds,
+                checkpoint = cp
+              }
     else do
       loop
         Model
           { tasks = [],
             quit = False,
             _error = Nothing,
-            timestamp = currentSeconds
+            timestamp = currentSeconds,
+            checkpoint = currentSeconds
           }
+
+loadMaybeCheckpoint :: [String] -> Maybe Integer
+loadMaybeCheckpoint [s] = readMaybe s :: Maybe Integer
+loadMaybeCheckpoint _ = Nothing
 
 loop :: Model -> IO ()
 loop model = do
@@ -317,10 +336,10 @@ loop model = do
             }
   if newModel.quit == True
     then do
-      writeFile modelFile (unlines (map show newModel.tasks))
+      writeFile modelFile (unlines ([show model.checkpoint] ++ map show newModel.tasks))
       putStrLn "Bye!"
     else do
-      writeFile modelFile (unlines (map show newModel.tasks))
+      writeFile modelFile (unlines ([show model.checkpoint] ++ map show newModel.tasks))
       loop newModel
 
 getCurrentSeconds :: IO Integer
