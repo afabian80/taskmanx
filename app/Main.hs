@@ -351,12 +351,11 @@ loop model = do
           model
             { timestamp = currentSeconds
             }
+  writeFile modelFile (unlines ([show model.checkpoint] ++ map show newModel.tasks))
   if newModel.quit == True
     then do
-      writeFile modelFile (unlines ([show model.checkpoint] ++ map show newModel.tasks))
       putStrLn "Bye!"
     else do
-      writeFile modelFile (unlines ([show model.checkpoint] ++ map show newModel.tasks))
       loop newModel
 
 getCurrentSeconds :: IO Integer
