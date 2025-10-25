@@ -62,6 +62,7 @@ data Msg
   = Nope
   | Quit
   | Checkpoint
+  | Clean
   | Command InputLine
   deriving (Show)
 
@@ -76,8 +77,21 @@ update msg model =
   case msg of
     Quit -> model {quit = True}
     Nope -> model {_error = Nothing}
-    Checkpoint -> model {checkpoint = model.timestamp}
+    Checkpoint -> model {checkpoint = model.timestamp, _error = Nothing}
+    Clean -> model {tasks = cleanUpTasks model, _error = Nothing}
     Command line -> handleLine line model
+
+cleanUpTasks :: Model -> [Task]
+cleanUpTasks model = newTasks
+  where
+    newTasks = filter (toBeCleaned model.checkpoint) model.tasks
+    toBeCleaned :: Integer -> Task -> Bool
+    toBeCleaned checkpointTime task =
+      if task.state `elem` [Done, Cancelled]
+        then
+          if task.ts <= checkpointTime then False else True
+        else
+          True
 
 handleLine :: InputLine -> Model -> Model
 handleLine line model =
@@ -355,4 +369,5 @@ inputLineToMsg (InputLine line)
   | line == "" = Nope
   | line == "q" = Quit
   | line == "checkpoint" = Checkpoint
+  | line == "clean" = Clean
   | otherwise = Command (InputLine line)
