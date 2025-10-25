@@ -87,11 +87,7 @@ cleanUpTasks model = newTasks
     newTasks = filter (toBeCleaned model.checkpoint) model.tasks
     toBeCleaned :: Integer -> Task -> Bool
     toBeCleaned checkpointTime task =
-      if task.state `elem` [Done, Cancelled]
-        then
-          if task.ts <= checkpointTime then False else True
-        else
-          True
+      not (task.state `elem` [Done, Cancelled] && task.ts <= checkpointTime)
 
 handleLine :: InputLine -> Model -> Model
 handleLine line model =
@@ -249,7 +245,7 @@ renderIndexedTask :: Integer -> Integer -> (Int, Task) -> String
 renderIndexedTask modelTime checkpointTime (i, t) =
   show i
     ++ ". "
-    ++ (colorize (stateColor t.state) $ renderTaskState t.state)
+    ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ " "
     ++ renderCheckpointInfo t.ts checkpointTime
     ++ t.title
@@ -351,17 +347,15 @@ loop model = do
           model
             { timestamp = currentSeconds
             }
-  writeFile modelFile (unlines ([show model.checkpoint] ++ map show newModel.tasks))
-  if newModel.quit == True
+  writeFile modelFile (unlines (show model.checkpoint : map show newModel.tasks))
+  if newModel.quit
     then do
       putStrLn "Bye!"
     else do
       loop newModel
 
 getCurrentSeconds :: IO Integer
-getCurrentSeconds = do
-  currentTime <- getCurrentTime
-  return $ floor $ nominalDiffTimeToSeconds $ utcTimeToPOSIXSeconds currentTime
+getCurrentSeconds = do floor . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> getCurrentTime
 
 inputLineToMsg :: InputLine -> Msg
 inputLineToMsg (InputLine line)
