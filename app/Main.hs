@@ -19,14 +19,16 @@ data TaskState
   | Done
   | Cancelled
   | Suspended
-  deriving (Read, Eq)
+  deriving (Show, Read, Eq)
 
-instance Show TaskState where
-  show Todo = "TODO  "
-  show Doing = "DOING "
-  show Done = "DONE  "
-  show Cancelled = "CANC  "
-  show Suspended = "SUSP  "
+renderTaskState :: TaskState -> String
+renderTaskState st =
+  case st of
+    Todo -> "TODO  "
+    Doing -> "DOING "
+    Done -> "DONE  "
+    Cancelled -> "CANC  "
+    Suspended -> "SUSP  "
 
 data Color = ColorYellow | ColorGreen | ColorWhite | ColorReset
 
@@ -226,7 +228,7 @@ renderIndexedTask :: Integer -> (Int, Task) -> String
 renderIndexedTask modelTime (i, t) =
   show i
     ++ ". "
-    ++ (colorize (stateColor t.state) $ show t.state)
+    ++ (colorize (stateColor t.state) $ renderTaskState t.state)
     ++ " "
     ++ t.title
     ++ " ("
