@@ -28,6 +28,17 @@ instance Show TaskState where
   show Cancelled = "CANC  "
   show Suspended = "SUSP  "
 
+data Color = ColorYellow | ColorGreen | ColorWhite | ColorReset
+
+instance Show Color where
+  show ColorYellow = "\ESC[43;30m"
+  show ColorWhite = "\ESC[47;30m"
+  show ColorGreen = "\ESC[42;30m"
+  show ColorReset = "\ESC[0m"
+
+colorize :: Color -> String -> String
+colorize color text = show color ++ text ++ show ColorReset
+
 data Task = Task
   { title :: String,
     state :: TaskState,
@@ -215,12 +226,20 @@ renderIndexedTask :: Integer -> (Int, Task) -> String
 renderIndexedTask modelTime (i, t) =
   show i
     ++ ". "
-    ++ show t.state
+    ++ (colorize (stateColor t.state) $ show t.state)
     ++ " "
     ++ t.title
     ++ " ("
     ++ renderTime modelTime t.ts
     ++ ")"
+
+stateColor :: TaskState -> Color
+stateColor st = case st of
+  Todo -> ColorWhite
+  Doing -> ColorYellow
+  Done -> ColorGreen
+  Cancelled -> ColorWhite
+  Suspended -> ColorWhite
 
 secondsInDay :: Integer
 secondsInDay = 86400
