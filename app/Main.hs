@@ -285,7 +285,17 @@ renderIndexedTask modelTime checkpointTime (i, t) =
     ++ t.title
     ++ " ("
     ++ renderTime modelTime t.ts
-    ++ ")"
+    ++ ") "
+    ++ renderDeadlineInfo t.deadlineMinutes modelTime
+
+renderDeadlineInfo :: Maybe Integer -> Integer -> String
+renderDeadlineInfo maybeDeadline modelTime =
+  case maybeDeadline of
+    Nothing -> ""
+    Just deadlineTime ->
+      if deadlineTime <= modelTime
+        then colorize ColorRed "TIMED OUT!"
+        else ""
 
 renderCheckpointInfo :: Integer -> Integer -> [Char]
 renderCheckpointInfo taskTime checkpointTime =
