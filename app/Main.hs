@@ -319,7 +319,8 @@ loop model = do
     then do
       writeFile modelFile (unlines (map show newModel.tasks))
       putStrLn "Bye!"
-    else
+    else do
+      writeFile modelFile (unlines (map show newModel.tasks))
       loop newModel
 
 getCurrentSeconds :: IO Integer
