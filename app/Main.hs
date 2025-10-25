@@ -227,7 +227,7 @@ render :: Model -> String
 render model = renderTasks model ++ renderDebugInfo model
 
 renderDebugInfo :: Model -> String
-renderDebugInfo model = "Checkpoint is " ++ show model.checkpoint
+renderDebugInfo _ = ""
 
 renderTasks :: Model -> String
 renderTasks model =
