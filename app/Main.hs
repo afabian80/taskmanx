@@ -225,22 +225,27 @@ renderTasks model =
       indexTaskPairs = zip [1 :: Int ..] model.tasks
 
       taskLines :: [String]
-      taskLines = map (renderIndexedTask model.timestamp) indexTaskPairs
+      taskLines = map (renderIndexedTask model.timestamp model.checkpoint) indexTaskPairs
 
       modelError Nothing = ""
       modelError (Just e) = "ERROR: " ++ e
    in "\nTasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
 
-renderIndexedTask :: Integer -> (Int, Task) -> String
-renderIndexedTask modelTime (i, t) =
+renderIndexedTask :: Integer -> Integer -> (Int, Task) -> String
+renderIndexedTask modelTime checkpointTime (i, t) =
   show i
     ++ ". "
     ++ (colorize (stateColor t.state) $ renderTaskState t.state)
     ++ " "
+    ++ renderCheckpointInfo t.ts checkpointTime
     ++ t.title
     ++ " ("
     ++ renderTime modelTime t.ts
     ++ ")"
+
+renderCheckpointInfo :: Integer -> Integer -> [Char]
+renderCheckpointInfo taskTime checkpointTime =
+  if taskTime > checkpointTime then "🟡 " else ""
 
 stateColor :: TaskState -> Color
 stateColor st = case st of
