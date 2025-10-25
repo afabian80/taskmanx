@@ -216,9 +216,6 @@ cancelCommands = ["cancel", "canc"]
 suspendCommands :: [String]
 suspendCommands = ["suspend"]
 
-checkpointCommands :: [String]
-checkpointCommands = ["checkpoint", "cp"]
-
 allCommands :: [String]
 allCommands =
   concat
@@ -228,8 +225,7 @@ allCommands =
       todoCommands,
       doingCommands,
       cancelCommands,
-      suspendCommands,
-      checkpointCommands
+      suspendCommands
     ]
 
 commandFromInput :: InputLine -> Either String Command
@@ -367,7 +363,6 @@ main = do
                 timestamp = currentSeconds,
                 checkpoint = cp
               }
-            0
     else do
       loop
         Model
@@ -377,15 +372,13 @@ main = do
             timestamp = currentSeconds,
             checkpoint = currentSeconds
           }
-        0
 
 loadMaybeCheckpoint :: [String] -> Maybe Integer
 loadMaybeCheckpoint [s] = readMaybe s :: Maybe Integer
 loadMaybeCheckpoint _ = Nothing
 
-loop :: Model -> Integer -> IO ()
-loop model counter = do
-  print counter
+loop :: Model -> IO ()
+loop model = do
   putStrLn $ render model
   putStrLn "Enter a command ('q' to quit): "
   line <- getLine
@@ -397,7 +390,7 @@ loop model counter = do
           model
             { timestamp = currentSeconds
             }
-  let newCounter = (counter + 1) `mod` 25
+  let newCounter = currentSeconds `mod` 100
   let backupName = "/tmp/model." ++ show newCounter ++ ".txt"
   let modelString = unlines (show model.checkpoint : map show newModel.tasks)
   writeFile modelFile modelString
@@ -406,7 +399,7 @@ loop model counter = do
     then do
       putStrLn "Bye!"
     else do
-      loop newModel newCounter
+      loop newModel
 
 getCurrentSeconds :: IO Integer
 getCurrentSeconds = do floor . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> getCurrentTime
