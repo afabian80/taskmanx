@@ -367,6 +367,7 @@ main = do
                 timestamp = currentSeconds,
                 checkpoint = cp
               }
+            0
     else do
       loop
         Model
@@ -376,13 +377,15 @@ main = do
             timestamp = currentSeconds,
             checkpoint = currentSeconds
           }
+        0
 
 loadMaybeCheckpoint :: [String] -> Maybe Integer
 loadMaybeCheckpoint [s] = readMaybe s :: Maybe Integer
 loadMaybeCheckpoint _ = Nothing
 
-loop :: Model -> IO ()
-loop model = do
+loop :: Model -> Integer -> IO ()
+loop model counter = do
+  print counter
   putStrLn $ render model
   putStrLn "Enter a command ('q' to quit): "
   line <- getLine
@@ -394,12 +397,16 @@ loop model = do
           model
             { timestamp = currentSeconds
             }
-  writeFile modelFile (unlines (show model.checkpoint : map show newModel.tasks))
+  let newCounter = (counter + 1) `mod` 25
+  let backupName = "/tmp/model." ++ show newCounter ++ ".txt"
+  let modelString = unlines (show model.checkpoint : map show newModel.tasks)
+  writeFile modelFile modelString
+  writeFile backupName modelString
   if newModel.quit
     then do
       putStrLn "Bye!"
     else do
-      loop newModel
+      loop newModel newCounter
 
 getCurrentSeconds :: IO Integer
 getCurrentSeconds = do floor . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> getCurrentTime
