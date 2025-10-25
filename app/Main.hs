@@ -30,12 +30,13 @@ renderTaskState st =
     Cancelled -> "CANC  "
     Suspended -> "SUSP  "
 
-data Color = ColorYellow | ColorGreen | ColorWhite | ColorReset
+data Color = ColorYellow | ColorGreen | ColorRed | ColorWhite | ColorReset
 
 instance Show Color where
   show ColorYellow = "\ESC[43;30m"
   show ColorWhite = "\ESC[47;30m"
   show ColorGreen = "\ESC[42;30m"
+  show ColorRed = "\ESC[41;37m"
   show ColorReset = "\ESC[0m"
 
 colorize :: Color -> String -> String
@@ -240,8 +241,8 @@ stateColor st = case st of
   Todo -> ColorWhite
   Doing -> ColorYellow
   Done -> ColorGreen
-  Cancelled -> ColorWhite
-  Suspended -> ColorWhite
+  Cancelled -> ColorRed
+  Suspended -> ColorRed
 
 secondsInDay :: Integer
 secondsInDay = 86400
