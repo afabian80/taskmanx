@@ -61,6 +61,7 @@ data Model = Model
 data Msg
   = Nope
   | Quit
+  | Checkpoint
   | Command InputLine
   deriving (Show)
 
@@ -68,7 +69,6 @@ data Command
   = NewTask String
   | DeleteTask String
   | SetTaskState TaskState String
-  | Checkpoint String
   deriving (Show)
 
 update :: Msg -> Model -> Model
@@ -76,6 +76,7 @@ update msg model =
   case msg of
     Quit -> model {quit = True}
     Nope -> model {_error = Nothing}
+    Checkpoint -> model {checkpoint = model.timestamp}
     Command line -> handleLine line model
 
 handleLine :: InputLine -> Model -> Model
@@ -88,7 +89,6 @@ handleLine line model =
         }
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
-    Right (Checkpoint _) -> model {checkpoint = model.timestamp}
     Left e -> model {_error = Just e}
   where
     command = commandFromInput line
@@ -203,7 +203,6 @@ commandFromInput (InputLine line) =
       | command `elem` doneCommands -> makeSafeCommand (SetTaskState Done) args
       | command `elem` cancelCommands -> makeSafeCommand (SetTaskState Cancelled) args
       | command `elem` suspendCommands -> makeSafeCommand (SetTaskState Suspended) args
-      | command `elem` checkpointCommands -> makeSafeCommand Checkpoint args
       | otherwise -> Left ("Unknown command: " ++ command)
 
 makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
@@ -351,4 +350,5 @@ inputLineToMsg :: InputLine -> Msg
 inputLineToMsg (InputLine line)
   | line == "" = Nope
   | line == "q" = Quit
+  | line == "checkpoint" = Checkpoint
   | otherwise = Command (InputLine line)
