@@ -50,7 +50,7 @@ data Task = Task
   { title :: String,
     state :: TaskState,
     timestamp :: Integer,
-    deadlineMinutes :: Maybe Integer
+    deadline :: Maybe Integer
   }
   deriving (Show, Read, Eq)
 
@@ -110,11 +110,11 @@ handleLine line model =
             { title = hyperTitle,
               state = newState,
               timestamp = model.time,
-              deadlineMinutes = dm
+              deadline = newDeadline
             }
         newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
         hyperTitle = unwords $ map fixLink (words newTitle)
-        dm = calculateDeadline taskTitle model.time
+        newDeadline = calculateDeadline taskTitle model.time
         newState = if "/job/" `isInfixOf` newTitle then Doing else Todo
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
@@ -163,7 +163,7 @@ updateDeadline model args =
                       Just s -> case (readMaybe s :: Maybe Integer) of
                         Nothing -> other
                         Just newNumber ->
-                          other {deadlineMinutes = Just (model.time + newNumber * 60)}
+                          other {deadline = Just (model.time + newNumber * 60)}
                     else other
               )
               m.tasks
@@ -352,7 +352,7 @@ renderIndexedTask modelTime checkpointTime (i, t) =
     ++ " ("
     ++ renderTime modelTime t.timestamp
     ++ ") "
-    ++ renderDeadlineInfo t.deadlineMinutes modelTime t.state
+    ++ renderDeadlineInfo t.deadline modelTime t.state
 
 renderDeadlineInfo :: Maybe Integer -> Integer -> TaskState -> String
 renderDeadlineInfo maybeDeadline modelTime taskState =
