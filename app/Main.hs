@@ -104,15 +104,15 @@ handleLine line model =
       where
         newTask =
           Task
-            { title = newTitle ++ deadlineInfo dm,
+            { title = newTitle,
               state = Todo,
               timestamp = model.time,
               deadlineMinutes = dm
             }
         newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
         dm = calculateDeadline taskTitle model.time
-        deadlineInfo Nothing = ""
-        deadlineInfo (Just endTS) = " [by: " ++ convertPosixToTimeStr endTS ++ "]"
+    -- deadlineInfo Nothing = ""
+    -- deadlineInfo (Just endTS) = " [by: " ++ convertPosixToTimeStr endTS ++ "]"
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Left e -> model {_error = Just e}
@@ -307,7 +307,9 @@ renderDeadlineInfo maybeDeadline modelTime taskState =
       Just deadlineTime ->
         if deadlineTime <= modelTime
           then colorize (Red, White) "TIMED OUT!"
-          else ""
+          else deadlineInfo deadlineTime
+  where
+    deadlineInfo endTS = " [by: " ++ convertPosixToTimeStr endTS ++ "]"
 
 renderCheckpointInfo :: Integer -> Integer -> [Char]
 renderCheckpointInfo taskTime checkpointTime =
