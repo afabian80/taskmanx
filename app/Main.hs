@@ -39,6 +39,12 @@ colorize (bgColor, fgColor) text =
     ++ text
     ++ setSGRCode [Reset]
 
+-- underline :: String -> String
+-- underline text =
+--   setSGRCode [SetUnderlining SingleUnderline]
+--     ++ text
+--     ++ setSGRCode [SetUnderlining NoUnderline]
+
 data Task = Task
   { title :: String,
     state :: TaskState,
