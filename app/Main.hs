@@ -74,6 +74,7 @@ data Command
   = NewTask String
   | DeleteTask String
   | SetTaskState TaskState String
+  | Deadline String
   deriving (Show)
 
 update :: Msg -> Model -> Model
@@ -114,9 +115,47 @@ handleLine line model =
         newState = if "/job/" `isInfixOf` newTitle then Doing else Todo
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
+    Right (Deadline args) -> updateDeadline model args
     Left e -> model {_error = Just e}
   where
     command = commandFromInput line
+
+updateDeadline :: Model -> String -> Model
+updateDeadline model args =
+  model {tasks = newTasks}
+  where
+    newTasks = tryUpdateDeadline model maybeIndex maybeNewDeadline
+    maybeIndex = parseTaskIndex (words args)
+    maybeNewDeadline = parseNewDeadline (drop 1 $ words args)
+
+    parseTaskIndex :: [String] -> Maybe Integer
+    parseTaskIndex [] = Nothing
+    parseTaskIndex (x : _) = readMaybe x :: Maybe Integer
+
+    parseNewDeadline :: [String] -> Maybe String
+    parseNewDeadline [] = Nothing
+    parseNewDeadline (x : _) = Just x
+
+    -- this is ugly, need to learn more :)
+    tryUpdateDeadline :: Model -> Maybe Integer -> Maybe String -> [Task]
+    tryUpdateDeadline m mi ms =
+      case mi of
+        Nothing -> m.tasks
+        Just i -> case lookupTaskAtIndex m.tasks (fromIntegral i) of
+          Nothing -> m.tasks
+          Just t ->
+            map
+              ( \other ->
+                  if t.title == other.title
+                    then case ms of
+                      Nothing -> other
+                      Just s -> case (readMaybe s :: Maybe Integer) of
+                        Nothing -> other
+                        Just newNumber ->
+                          other {deadlineMinutes = Just (model.time + newNumber * 60)}
+                    else other
+              )
+              m.tasks
 
 commandFromInput :: InputLine -> Either String Command
 commandFromInput (InputLine line) =
@@ -133,6 +172,7 @@ commandFromInput (InputLine line) =
       | command `elem` doneCommands -> makeSafeCommand (SetTaskState Done) args
       | command `elem` cancelCommands -> makeSafeCommand (SetTaskState Cancelled) args
       | command `elem` suspendCommands -> makeSafeCommand (SetTaskState Suspended) args
+      | command `elem` deadlineCommands -> makeSafeCommand Deadline args
       | otherwise -> Left ("Unknown command: " ++ command)
 
 makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
@@ -254,6 +294,9 @@ cancelCommands = ["cancel", "canc"]
 suspendCommands :: [String]
 suspendCommands = ["suspend"]
 
+deadlineCommands :: [String]
+deadlineCommands = ["deadline"]
+
 allCommands :: [String]
 allCommands =
   concat
@@ -263,7 +306,8 @@ allCommands =
       todoCommands,
       doingCommands,
       cancelCommands,
-      suspendCommands
+      suspendCommands,
+      deadlineCommands
     ]
 
 render :: Model -> String
