@@ -311,10 +311,13 @@ allCommands =
     ]
 
 render :: Model -> String
-render model = renderTasks model ++ renderDebugInfo model
+render model = renderCheckpointTime model ++ renderTasks model ++ renderDebugInfo model
+
+renderCheckpointTime :: Model -> String
+renderCheckpointTime model = "\t\tCheckpoint: " ++ convertPosixToTimeStr model.checkpoint ++ "\n"
 
 renderDebugInfo :: Model -> String
-renderDebugInfo model = "Comparison checkpoint: " ++ convertPosixToTimeStr model.checkpoint
+renderDebugInfo _ = ""
 
 renderTasks :: Model -> String
 renderTasks model =
@@ -326,7 +329,7 @@ renderTasks model =
 
       modelError Nothing = ""
       modelError (Just e) = colorize (Red, White) ("ERROR: " ++ e)
-   in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error ++ "\n"
+   in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
 
 renderIndexedTask :: Integer -> Integer -> (Int, Task) -> String
 renderIndexedTask modelTime checkpointTime (i, t) =
