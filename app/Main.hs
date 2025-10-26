@@ -121,8 +121,9 @@ convertPosixToTimeStr :: Integer -> String
 convertPosixToTimeStr ts =
   timeStr
   where
-    timeStr = formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S UTC" posixTime
-    posixTime = posixSecondsToUTCTime (realToFrac ts :: POSIXTime)
+    timeStr = formatTime defaultTimeLocale "%a %H:%M:%S" posixTime
+    posixTime = posixSecondsToUTCTime (realToFrac (ts + zoneDiff) :: POSIXTime)
+    zoneDiff = 3600
 
 -- If the text contains "@number"" exactly once then return the number as minutes
 -- added to the second parameter in seconds
