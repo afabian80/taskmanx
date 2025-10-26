@@ -111,8 +111,6 @@ handleLine line model =
             }
         newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
         dm = calculateDeadline taskTitle model.time
-    -- deadlineInfo Nothing = ""
-    -- deadlineInfo (Just endTS) = " [by: " ++ convertPosixToTimeStr endTS ++ "]"
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Left e -> model {_error = Just e}
