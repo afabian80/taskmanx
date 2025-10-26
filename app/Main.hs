@@ -43,6 +43,9 @@ instance Show Color where
 colorize :: Color -> String -> String
 colorize color text = show color ++ text ++ show ColorReset
 
+clearScreenCode :: String
+clearScreenCode = "\ESC[2J\ESC[H"
+
 data Task = Task
   { title :: String,
     state :: TaskState,
@@ -269,7 +272,7 @@ renderTasks model =
 
       modelError Nothing = ""
       modelError (Just e) = "ERROR: " ++ e
-   in "\nTasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
+   in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
 
 renderIndexedTask :: Integer -> Integer -> (Int, Task) -> String
 renderIndexedTask modelTime checkpointTime (i, t) =
@@ -379,6 +382,7 @@ loadMaybeCheckpoint _ = Nothing
 
 loop :: Model -> IO ()
 loop model = do
+  putStrLn clearScreenCode
   putStrLn $ render model
   putStrLn "Enter a command ('q' to quit): "
   line <- getLine
