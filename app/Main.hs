@@ -48,7 +48,7 @@ colorize (bgColor, fgColor) text =
 data Task = Task
   { title :: String,
     state :: TaskState,
-    ts :: Integer,
+    timestamp :: Integer,
     deadlineMinutes :: Maybe Integer
   }
   deriving (Show, Read, Eq)
@@ -57,7 +57,7 @@ data Model = Model
   { tasks :: [Task],
     quit :: Bool,
     _error :: Maybe String,
-    timestamp :: Integer,
+    time :: Integer,
     checkpoint :: Integer
   }
   deriving (Show)
@@ -81,7 +81,7 @@ update msg model =
   case msg of
     Quit -> model {quit = True}
     Nope -> model {_error = Nothing}
-    Checkpoint -> model {checkpoint = model.timestamp, _error = Nothing}
+    Checkpoint -> model {checkpoint = model.time, _error = Nothing}
     Clean -> model {tasks = cleanUpTasks model, _error = Nothing}
     Command line -> handleLine line model
 
@@ -91,7 +91,7 @@ cleanUpTasks model = newTasks
     newTasks = filter (toBeCleaned model.checkpoint) model.tasks
     toBeCleaned :: Integer -> Task -> Bool
     toBeCleaned checkpointTime task =
-      not (task.state `elem` [Done, Cancelled] && task.ts <= checkpointTime)
+      not (task.state `elem` [Done, Cancelled] && task.timestamp <= checkpointTime)
 
 handleLine :: InputLine -> Model -> Model
 handleLine line model =
@@ -106,8 +106,8 @@ handleLine line model =
           Task
             { title = taskTitle,
               state = Todo,
-              ts = model.timestamp,
-              deadlineMinutes = calculateDeadline taskTitle model.timestamp
+              timestamp = model.time,
+              deadlineMinutes = calculateDeadline taskTitle model.time
             }
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
@@ -153,14 +153,14 @@ setTaskStateByIndexInt model index newState =
     Nothing -> model {_error = Just $ "No task with index " ++ show index}
     Just task ->
       model
-        { tasks = map (updateTaskState task newState model.timestamp) model.tasks,
+        { tasks = map (updateTaskState task newState model.time) model.tasks,
           _error = Nothing
         }
   where
     taskAtIndex = lookupTaskAtIndex model.tasks index
     updateTaskState taskToMatch st newTS otherTask =
       if otherTask == taskToMatch
-        then otherTask {state = st, ts = newTS}
+        then otherTask {state = st, timestamp = newTS}
         else otherTask
 
 deleteTask :: Model -> String -> Model
@@ -267,7 +267,7 @@ renderTasks model =
       indexTaskPairs = zip [1 :: Int ..] model.tasks
 
       taskLines :: [String]
-      taskLines = map (renderIndexedTask model.timestamp model.checkpoint) indexTaskPairs
+      taskLines = map (renderIndexedTask model.time model.checkpoint) indexTaskPairs
 
       modelError Nothing = ""
       modelError (Just e) = "ERROR: " ++ e
@@ -279,10 +279,10 @@ renderIndexedTask modelTime checkpointTime (i, t) =
     ++ ". "
     ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ " "
-    ++ renderCheckpointInfo t.ts checkpointTime
+    ++ renderCheckpointInfo t.timestamp checkpointTime
     ++ t.title
     ++ " ("
-    ++ renderTime modelTime t.ts
+    ++ renderTime modelTime t.timestamp
     ++ ") "
     ++ renderDeadlineInfo t.deadlineMinutes modelTime t.state
 
@@ -362,7 +362,7 @@ main = do
               { tasks = loadedTasks,
                 quit = False,
                 _error = Nothing,
-                timestamp = currentSeconds,
+                time = currentSeconds,
                 checkpoint = cp
               }
     else do
@@ -371,7 +371,7 @@ main = do
           { tasks = [],
             quit = False,
             _error = Nothing,
-            timestamp = currentSeconds,
+            time = currentSeconds,
             checkpoint = currentSeconds
           }
 
@@ -392,7 +392,7 @@ loop model = do
         update
           msg
           model
-            { timestamp = currentSeconds
+            { time = currentSeconds
             }
   let newCounter = currentSeconds `mod` 100
   let backupName = "/tmp/model." ++ show newCounter ++ ".txt"
