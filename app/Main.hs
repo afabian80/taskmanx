@@ -118,6 +118,31 @@ handleLine line model =
   where
     command = commandFromInput line
 
+commandFromInput :: InputLine -> Either String Command
+commandFromInput (InputLine line) =
+  case words line of
+    [] -> Left "Empty command"
+    [command]
+      | command `elem` allCommands -> Left $ "Not enough arguments for " ++ command
+      | otherwise -> Left ("Unknown command: " ++ command)
+    (command : args)
+      | command `elem` addCommands -> makeSafeCommand NewTask args
+      | command `elem` delCommands -> makeSafeCommand DeleteTask args
+      | command `elem` todoCommands -> makeSafeCommand (SetTaskState Todo) args
+      | command `elem` doingCommands -> makeSafeCommand (SetTaskState Doing) args
+      | command `elem` doneCommands -> makeSafeCommand (SetTaskState Done) args
+      | command `elem` cancelCommands -> makeSafeCommand (SetTaskState Cancelled) args
+      | command `elem` suspendCommands -> makeSafeCommand (SetTaskState Suspended) args
+      | otherwise -> Left ("Unknown command: " ++ command)
+
+makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
+makeSafeCommand taskConstructor args =
+  if null args
+    then
+      Left "Not enough arguments!"
+    else
+      Right (taskConstructor (unwords args))
+
 convertPosixToTimeStr :: Integer -> String
 convertPosixToTimeStr ts =
   timeStr
@@ -240,31 +265,6 @@ allCommands =
       cancelCommands,
       suspendCommands
     ]
-
-commandFromInput :: InputLine -> Either String Command
-commandFromInput (InputLine line) =
-  case words line of
-    [] -> Left "Empty command"
-    [command]
-      | command `elem` allCommands -> Left $ "Not enough arguments for " ++ command
-      | otherwise -> Left ("Unknown command: " ++ command)
-    (command : args)
-      | command `elem` addCommands -> makeSafeCommand NewTask args
-      | command `elem` delCommands -> makeSafeCommand DeleteTask args
-      | command `elem` todoCommands -> makeSafeCommand (SetTaskState Todo) args
-      | command `elem` doingCommands -> makeSafeCommand (SetTaskState Doing) args
-      | command `elem` doneCommands -> makeSafeCommand (SetTaskState Done) args
-      | command `elem` cancelCommands -> makeSafeCommand (SetTaskState Cancelled) args
-      | command `elem` suspendCommands -> makeSafeCommand (SetTaskState Suspended) args
-      | otherwise -> Left ("Unknown command: " ++ command)
-
-makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
-makeSafeCommand taskConstructor args =
-  if null args
-    then
-      Left "Not enough arguments!"
-    else
-      Right (taskConstructor (unwords args))
 
 render :: Model -> String
 render model = renderTasks model ++ renderDebugInfo model
