@@ -345,15 +345,21 @@ toDHMS totalSeconds =
    in (days, hours, minutes, seconds)
 
 renderTime :: Integer -> Integer -> String
-renderTime modelTime taskTime = showTime (d, h, m, s)
+renderTime modelTime taskTime = showTimeRounded (d, h, m, s)
   where
     (d, h, m, s) = toDHMS (modelTime - taskTime)
 
-showTime :: (Integer, Integer, Integer, Integer) -> String
-showTime (0, 0, 0, s) = show s ++ "s"
-showTime (0, 0, m, s) = show m ++ "m " ++ show s ++ "s"
-showTime (0, h, m, s) = show h ++ "h " ++ show m ++ "m " ++ show s ++ "s"
-showTime (d, h, m, s) = show d ++ "d " ++ show h ++ "h " ++ show m ++ "m " ++ show s ++ "s"
+-- showTime :: (Integer, Integer, Integer, Integer) -> String
+-- showTime (0, 0, 0, s) = show s ++ "s"
+-- showTime (0, 0, m, s) = show m ++ "m " ++ show s ++ "s"
+-- showTime (0, h, m, s) = show h ++ "h " ++ show m ++ "m " ++ show s ++ "s"
+-- showTime (d, h, m, s) = show d ++ "d " ++ show h ++ "h " ++ show m ++ "m " ++ show s ++ "s"
+
+showTimeRounded :: (Integer, Integer, Integer, Integer) -> String
+showTimeRounded (0, 0, 0, s) = show s ++ "s"
+showTimeRounded (0, 0, m, _) = show m ++ "m"
+showTimeRounded (0, h, _, _) = show h ++ "h"
+showTimeRounded (d, _, _, _) = show d ++ "d"
 
 main :: IO ()
 main = do
