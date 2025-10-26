@@ -325,7 +325,7 @@ renderTasks model =
       taskLines = map (renderIndexedTask model.time model.checkpoint) indexTaskPairs
 
       modelError Nothing = ""
-      modelError (Just e) = "ERROR: " ++ e
+      modelError (Just e) = colorize (Red, White) ("ERROR: " ++ e)
    in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error ++ "\n"
 
 renderIndexedTask :: Integer -> Integer -> (Int, Task) -> String
