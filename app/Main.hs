@@ -208,10 +208,10 @@ deleteTaskByTitle model taskTitle =
     taskTitles = map title model.tasks
 
 addCommands :: [String]
-addCommands = ["new", "add"]
+addCommands = ["new", "add", "a"]
 
 delCommands :: [String]
-delCommands = ["del", "delete", "rm", "remove"]
+delCommands = ["del", "delete", "d", "rm", "remove"]
 
 doneCommands :: [String]
 doneCommands = ["done"]
@@ -425,5 +425,6 @@ inputLineToMsg (InputLine line)
   | line == "" = Nope
   | line == "q" = Quit
   | line == "checkpoint" = Checkpoint
+  | line == "cp" = Checkpoint
   | line == "clean" = Clean
   | otherwise = Command (InputLine line)
