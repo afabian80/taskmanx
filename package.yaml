@@ -27,6 +27,7 @@ dependencies:
 - directory
 - containers
 - time
+- ansi-terminal
 
 ghc-options:
 - -Wall

@@ -6,6 +6,7 @@ import Data.List (isPrefixOf)
 import Data.Map qualified as Map
 import Data.Time (getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
+import System.Console.ANSI
 import System.Directory (doesFileExist)
 import Text.Read (readMaybe)
 
@@ -31,20 +32,27 @@ renderTaskState st =
     Cancelled -> "CANC  "
     Suspended -> "SUSP  "
 
-data Color = ColorYellow | ColorGreen | ColorRed | ColorWhite | ColorReset
+-- data Color = ColorYellow | ColorGreen | ColorRed | ColorWhite | ColorReset
 
-instance Show Color where
-  show ColorYellow = "\ESC[43;30m"
-  show ColorWhite = "\ESC[47;30m"
-  show ColorGreen = "\ESC[42;30m"
-  show ColorRed = "\ESC[41;37m"
-  show ColorReset = "\ESC[0m"
+-- instance Show Color where
+--   show ColorYellow = "\ESC[43;30m"
+--   show ColorWhite = "\ESC[47;30m"
+--   show ColorGreen = "\ESC[42;30m"
+--   show ColorRed = "\ESC[41;37m"
+--   show ColorReset = "\ESC[0m"
 
-colorize :: Color -> String -> String
-colorize color text = show color ++ text ++ show ColorReset
+-- colorize :: Color -> String -> String
+-- colorize color text = show color ++ text ++ show ColorReset
 
-clearScreenCode :: String
-clearScreenCode = "\ESC[2J\ESC[H"
+-- clearScreenCode :: String
+-- clearScreenCode = "\ESC[2J\ESC[H"
+
+colorize :: (Color, Color) -> String -> String
+colorize (bgColor, fgColor) text =
+  setSGRCode [SetColor Background Dull bgColor]
+    ++ setSGRCode [SetColor Foreground Dull fgColor]
+    ++ text
+    ++ setSGRCode [Reset]
 
 data Task = Task
   { title :: String,
@@ -296,20 +304,20 @@ renderDeadlineInfo maybeDeadline modelTime taskState =
       Nothing -> ""
       Just deadlineTime ->
         if deadlineTime <= modelTime
-          then colorize ColorRed "TIMED OUT!"
+          then colorize (Red, White) "TIMED OUT!"
           else ""
 
 renderCheckpointInfo :: Integer -> Integer -> [Char]
 renderCheckpointInfo taskTime checkpointTime =
   if taskTime > checkpointTime then "🟡 " else ""
 
-stateColor :: TaskState -> Color
+stateColor :: TaskState -> (Color, Color)
 stateColor st = case st of
-  Todo -> ColorWhite
-  Doing -> ColorYellow
-  Done -> ColorGreen
-  Cancelled -> ColorRed
-  Suspended -> ColorRed
+  Todo -> (White, Black)
+  Doing -> (Yellow, Black)
+  Done -> (Green, Black)
+  Cancelled -> (Red, White)
+  Suspended -> (Red, White)
 
 secondsInDay :: Integer
 secondsInDay = 86400
@@ -382,7 +390,8 @@ loadMaybeCheckpoint _ = Nothing
 
 loop :: Model -> IO ()
 loop model = do
-  putStrLn clearScreenCode
+  setCursorPosition 0 0
+  clearScreen
   putStrLn $ render model
   putStrLn "Enter a command ('q' to quit): "
   line <- getLine
