@@ -78,13 +78,15 @@ data Command
   deriving (Show)
 
 update :: Msg -> Model -> Model
-update msg model =
+update msg tempModel =
   case msg of
     Quit -> model {quit = True}
-    Nope -> model {_error = Nothing}
-    Checkpoint -> model {checkpoint = model.time, _error = Nothing}
-    Clean -> model {tasks = cleanUpTasks model, _error = Nothing}
+    Nope -> model
+    Checkpoint -> model {checkpoint = model.time}
+    Clean -> model {tasks = cleanUpTasks model}
     Command line -> handleLine line model
+  where
+    model = tempModel {_error = Nothing}
 
 cleanUpTasks :: Model -> [Task]
 cleanUpTasks model = newTasks
@@ -99,8 +101,7 @@ handleLine line model =
   case command of
     Right (NewTask taskTitle) ->
       model
-        { tasks = model.tasks ++ [newTask],
-          _error = Nothing
+        { tasks = model.tasks ++ [newTask]
         }
       where
         newTask =
@@ -229,8 +230,7 @@ setTaskStateByIndexInt model index newState =
     Nothing -> model {_error = Just $ "No task with index " ++ show index}
     Just task ->
       model
-        { tasks = map (updateTaskState task newState model.time) model.tasks,
-          _error = Nothing
+        { tasks = map (updateTaskState task newState model.time) model.tasks
         }
   where
     taskAtIndex = lookupTaskAtIndex model.tasks index
@@ -266,7 +266,7 @@ deleteTaskByTitle :: Model -> String -> Model
 deleteTaskByTitle model taskTitle =
   if taskTitle `elem` taskTitles
     then
-      model {tasks = newTaskList, _error = Nothing}
+      model {tasks = newTaskList}
     else
       model {_error = Just $ "Cannot delete " ++ taskTitle}
   where
