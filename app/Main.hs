@@ -2,7 +2,8 @@
 
 module Main (main) where
 
-import Data.List (isInfixOf, isPrefixOf)
+import Data.List (intercalate, isInfixOf, isPrefixOf)
+import Data.List.Split (splitOn)
 import Data.Map qualified as Map
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
@@ -126,7 +127,7 @@ fixLink :: String -> String
 fixLink text =
   if "http" `isPrefixOf` text
     then
-      hyperlinkCode text (drop 10 text)
+      hyperlinkCode text (intercalate "/" (reverse (take 3 (reverse (splitOn "/" text)))))
     else
       text
 

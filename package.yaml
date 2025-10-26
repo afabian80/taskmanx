@@ -28,6 +28,7 @@ dependencies:
 - containers
 - time
 - ansi-terminal
+- split
 
 ghc-options:
 - -Wall
