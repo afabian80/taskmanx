@@ -121,7 +121,7 @@ convertPosixToTimeStr :: Integer -> String
 convertPosixToTimeStr ts =
   timeStr
   where
-    timeStr = formatTime defaultTimeLocale "%a %H:%M:%S" posixTime
+    timeStr = formatTime defaultTimeLocale "%a %H:%M" posixTime
     posixTime = posixSecondsToUTCTime (realToFrac (ts + zoneDiff) :: POSIXTime)
     zoneDiff = 3600
 
