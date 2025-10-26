@@ -326,7 +326,7 @@ renderTasks model =
 
       modelError Nothing = ""
       modelError (Just e) = "ERROR: " ++ e
-   in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
+   in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error ++ "\n"
 
 renderIndexedTask :: Integer -> Integer -> (Int, Task) -> String
 renderIndexedTask modelTime checkpointTime (i, t) =
