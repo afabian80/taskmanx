@@ -2,7 +2,7 @@
 
 module Main (main) where
 
-import Data.List (isPrefixOf)
+import Data.List (isInfixOf, isPrefixOf)
 import Data.Map qualified as Map
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
@@ -105,12 +105,13 @@ handleLine line model =
         newTask =
           Task
             { title = newTitle,
-              state = Todo,
+              state = newState,
               timestamp = model.time,
               deadlineMinutes = dm
             }
         newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
         dm = calculateDeadline taskTitle model.time
+        newState = if "/job/" `isInfixOf` newTitle then Doing else Todo
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Left e -> model {_error = Just e}
