@@ -106,12 +106,13 @@ handleLine line model =
       where
         newTask =
           Task
-            { title = newTitle,
+            { title = hyperTitle,
               state = newState,
               timestamp = model.time,
               deadlineMinutes = dm
             }
         newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
+        hyperTitle = unwords $ map fixLink (words newTitle)
         dm = calculateDeadline taskTitle model.time
         newState = if "/job/" `isInfixOf` newTitle then Doing else Todo
     Right (DeleteTask task) -> deleteTask model task
@@ -120,6 +121,14 @@ handleLine line model =
     Left e -> model {_error = Just e}
   where
     command = commandFromInput line
+
+fixLink :: String -> String
+fixLink text =
+  if "http" `isPrefixOf` text
+    then
+      hyperlinkCode text (drop 10 text)
+    else
+      text
 
 updateDeadline :: Model -> String -> Model
 updateDeadline model args =
