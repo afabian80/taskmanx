@@ -104,11 +104,16 @@ handleLine line model =
       where
         newTask =
           Task
-            { title = taskTitle,
+            { title = newTitle ++ deadlineInfo dm,
               state = Todo,
               timestamp = model.time,
-              deadlineMinutes = calculateDeadline taskTitle model.time
+              deadlineMinutes = dm
             }
+        newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
+        dm = calculateDeadline taskTitle model.time
+        deadlineInfo Nothing = ""
+        deadlineInfo (Just endTS) = " [deadline: " ++ endDate endTS model.time ++ " min]"
+        endDate to from = show $ (to - from) `div` 60
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Left e -> model {_error = Just e}
