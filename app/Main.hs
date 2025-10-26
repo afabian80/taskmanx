@@ -308,7 +308,7 @@ renderDeadlineInfo maybeDeadline modelTime taskState =
           then colorize (Red, White) "TIMED OUT!"
           else deadlineInfo deadlineTime
   where
-    deadlineInfo endTS = colorize (Cyan, Black) (" [by: " ++ convertPosixToTimeStr endTS ++ "]")
+    deadlineInfo endTS = colorize (Cyan, Black) (" [by: " ++ convertPosixToTimeStr endTS ++ "] ")
 
 renderCheckpointInfo :: Integer -> Integer -> [Char]
 renderCheckpointInfo taskTime checkpointTime =
