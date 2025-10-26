@@ -478,6 +478,7 @@ inputLineToMsg :: InputLine -> Msg
 inputLineToMsg (InputLine line)
   | line == "" = Nope
   | line == "q" = Quit
+  | line == "quit" = Quit
   | line == "checkpoint" = Checkpoint
   | line == "cp" = Checkpoint
   | line == "clean" = Clean
