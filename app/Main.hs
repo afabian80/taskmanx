@@ -32,21 +32,6 @@ renderTaskState st =
     Cancelled -> "CANC  "
     Suspended -> "SUSP  "
 
--- data Color = ColorYellow | ColorGreen | ColorRed | ColorWhite | ColorReset
-
--- instance Show Color where
---   show ColorYellow = "\ESC[43;30m"
---   show ColorWhite = "\ESC[47;30m"
---   show ColorGreen = "\ESC[42;30m"
---   show ColorRed = "\ESC[41;37m"
---   show ColorReset = "\ESC[0m"
-
--- colorize :: Color -> String -> String
--- colorize color text = show color ++ text ++ show ColorReset
-
--- clearScreenCode :: String
--- clearScreenCode = "\ESC[2J\ESC[H"
-
 colorize :: (Color, Color) -> String -> String
 colorize (bgColor, fgColor) text =
   setSGRCode [SetColor Background Dull bgColor]
