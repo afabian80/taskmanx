@@ -269,7 +269,7 @@ render :: Model -> String
 render model = renderTasks model ++ renderDebugInfo model
 
 renderDebugInfo :: Model -> String
-renderDebugInfo _ = ""
+renderDebugInfo model = "Comparison checkpoint: " ++ convertPosixToTimeStr model.checkpoint
 
 renderTasks :: Model -> String
 renderTasks model =
