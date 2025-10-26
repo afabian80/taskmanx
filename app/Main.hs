@@ -4,8 +4,8 @@ module Main (main) where
 
 import Data.List (isPrefixOf)
 import Data.Map qualified as Map
-import Data.Time (getCurrentTime, nominalDiffTimeToSeconds)
-import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
+import Data.Time (defaultTimeLocale, formatTime, getCurrentTime, nominalDiffTimeToSeconds)
+import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
 import System.Console.ANSI
 import System.Directory (doesFileExist)
 import Text.Read (readMaybe)
@@ -112,13 +112,19 @@ handleLine line model =
         newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
         dm = calculateDeadline taskTitle model.time
         deadlineInfo Nothing = ""
-        deadlineInfo (Just endTS) = " [deadline: " ++ endDate endTS model.time ++ " min]"
-        endDate to from = show $ (to - from) `div` 60
+        deadlineInfo (Just endTS) = " [by: " ++ convertPosixToTimeStr endTS ++ "]"
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Left e -> model {_error = Just e}
   where
     command = commandFromInput line
+
+convertPosixToTimeStr :: Integer -> String
+convertPosixToTimeStr ts =
+  timeStr
+  where
+    timeStr = formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S UTC" posixTime
+    posixTime = posixSecondsToUTCTime (realToFrac ts :: POSIXTime)
 
 -- If the text contains "@number"" exactly once then return the number as minutes
 -- added to the second parameter in seconds
