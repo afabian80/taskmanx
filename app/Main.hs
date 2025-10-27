@@ -363,14 +363,14 @@ renderIndexedTask modelTime checkpointTime (i, t) =
     ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ " "
     ++ renderCheckpointInfo t.timestamp checkpointTime
-    ++ pimp t.title
+    ++ fixLink t.title
     ++ " ("
     ++ renderTime modelTime t.timestamp
     ++ ") "
     ++ renderDeadlineInfo t.deadline modelTime t.state
 
-pimp :: String -> String
-pimp s = unwords $ map shortenLink (words s)
+fixLink :: String -> String
+fixLink s = unwords $ map shortenLink (words s)
 
 shortenLink :: String -> String
 shortenLink text =
