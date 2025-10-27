@@ -9,6 +9,7 @@ import Data.Time (defaultTimeLocale, formatTime, getCurrentTime, nominalDiffTime
 import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
 import System.Console.ANSI
 import System.Directory (doesFileExist)
+import Text.Printf
 import Text.Read (readMaybe)
 
 newtype InputLine = InputLine String deriving (Show)
@@ -35,7 +36,7 @@ renderTaskState st =
 
 colorize :: (Color, Color) -> String -> String
 colorize (bgColor, fgColor) text =
-  setSGRCode [SetColor Background Dull bgColor]
+  setSGRCode [SetColor Background Vivid bgColor]
     ++ setSGRCode [SetColor Foreground Dull fgColor]
     ++ text
     ++ setSGRCode [Reset]
@@ -59,7 +60,8 @@ data Model = Model
     quit :: Bool,
     _error :: Maybe String,
     time :: Integer,
-    checkpoint :: Integer
+    checkpoint :: Integer,
+    doNotBackup :: Bool
   }
   deriving (Show)
 
@@ -82,12 +84,12 @@ update :: Msg -> Model -> Model
 update msg tempModel =
   case msg of
     Quit -> model {quit = True}
-    Nope -> model
+    Nope -> model {doNotBackup = True}
     Checkpoint -> model {checkpoint = model.time}
     Clean -> model {tasks = cleanUpTasks model}
     Command line -> handleLine line model
   where
-    model = tempModel {_error = Nothing}
+    model = tempModel {_error = Nothing, doNotBackup = False}
 
 cleanUpTasks :: Model -> [Task]
 cleanUpTasks model = newTasks
@@ -343,7 +345,7 @@ renderTasks model =
 
 renderIndexedTask :: Integer -> Integer -> (Int, Task) -> String
 renderIndexedTask modelTime checkpointTime (i, t) =
-  show i
+  printf "%3d" i
     ++ ". "
     ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ " "
@@ -439,7 +441,8 @@ main = do
                 quit = False,
                 _error = Nothing,
                 time = currentSeconds,
-                checkpoint = cp
+                checkpoint = cp,
+                doNotBackup = False
               }
     else do
       loop
@@ -448,7 +451,8 @@ main = do
             quit = False,
             _error = Nothing,
             time = currentSeconds,
-            checkpoint = currentSeconds
+            checkpoint = currentSeconds,
+            doNotBackup = False
           }
 
 loadMaybeCheckpoint :: [String] -> Maybe Integer
@@ -474,7 +478,7 @@ loop model = do
   let backupName = "/tmp/model." ++ show newCounter ++ ".txt"
   let modelString = unlines (show model.checkpoint : map show newModel.tasks)
   writeFile modelFile modelString
-  writeFile backupName modelString
+  if newModel.doNotBackup then mempty else writeFile backupName modelString
   if newModel.quit
     then do
       putStrLn "Bye!"
