@@ -24,6 +24,7 @@ data TaskState
   | Cancelled
   | Suspended
   | Waiting
+  | Building
   deriving (Show, Read, Eq)
 
 renderTaskState :: TaskState -> String
@@ -35,6 +36,7 @@ renderTaskState st =
     Cancelled -> "CANC  "
     Suspended -> "SUSP  "
     Waiting -> "WAIT  "
+    Building -> "BUILD "
 
 colorize :: (Color, Color) -> String -> String
 colorize (bgColor, fgColor) text =
@@ -119,7 +121,7 @@ handleLine line model =
         newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
         hyperTitle = unwords $ map fixLink (words newTitle)
         newDeadline = calculateDeadline taskTitle model.time
-        newState = if "/job/" `isInfixOf` newTitle then Doing else Todo
+        newState = if "/job/" `isInfixOf` newTitle then Building else Todo
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Right (Deadline args) -> updateDeadline model args
@@ -189,6 +191,7 @@ commandFromInput (InputLine line) =
       | command `elem` suspendCommands -> makeSafeCommand (SetTaskState Suspended) args
       | command `elem` deadlineCommands -> makeSafeCommand Deadline args
       | command `elem` waitCommands -> makeSafeCommand (SetTaskState Waiting) args
+      | command `elem` buildCommands -> makeSafeCommand (SetTaskState Building) args
       | otherwise -> Left ("Unknown command: " ++ command)
 
 makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
@@ -315,6 +318,9 @@ deadlineCommands = ["deadline"]
 waitCommands :: [String]
 waitCommands = ["wait"]
 
+buildCommands :: [String]
+buildCommands = ["build", "building", "b"]
+
 allCommands :: [String]
 allCommands =
   concat
@@ -326,7 +332,8 @@ allCommands =
       cancelCommands,
       suspendCommands,
       deadlineCommands,
-      waitCommands
+      waitCommands,
+      buildCommands
     ]
 
 render :: Model -> String
@@ -389,6 +396,7 @@ stateColor st = case st of
   Cancelled -> (Red, White)
   Suspended -> (Red, White)
   Waiting -> (Cyan, Black)
+  Building -> (Cyan, Black)
 
 secondsInDay :: Integer
 secondsInDay = 86400
