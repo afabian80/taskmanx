@@ -42,7 +42,7 @@ renderTaskState st =
 
 colorize :: (Color, Color) -> String -> String
 colorize (bgColor, fgColor) text =
-  setSGRCode [SetColor Background Vivid bgColor]
+  setSGRCode [SetColor Background Dull bgColor]
     ++ setSGRCode [SetColor Foreground Dull fgColor]
     ++ text
     ++ setSGRCode [Reset]
