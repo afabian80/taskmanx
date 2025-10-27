@@ -115,13 +115,13 @@ handleLine line model =
       where
         newTask =
           Task
-            { title = hyperTitle,
+            { title = newTitle,
               state = newState,
               timestamp = model.time,
               deadline = newDeadline
             }
         newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
-        hyperTitle = unwords $ map fixLink (words newTitle)
+        -- hyperTitle = unwords $ map fixLink (words newTitle)
         newDeadline = calculateDeadline taskTitle model.time
         newState = if "/job/" `isInfixOf` newTitle then Building else Todo
     Right (DeleteTask task) -> deleteTask model task
@@ -130,14 +130,6 @@ handleLine line model =
     Left e -> model {_error = Just e}
   where
     command = commandFromInput line
-
-fixLink :: String -> String
-fixLink text =
-  if "http" `isPrefixOf` text
-    then
-      hyperlinkCode text (intercalate "/" (reverse (take 3 (reverse (splitOn "/" text)))))
-    else
-      text
 
 updateDeadline :: Model -> String -> Model
 updateDeadline model args =
@@ -371,11 +363,22 @@ renderIndexedTask modelTime checkpointTime (i, t) =
     ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ " "
     ++ renderCheckpointInfo t.timestamp checkpointTime
-    ++ t.title
+    ++ pimp t.title
     ++ " ("
     ++ renderTime modelTime t.timestamp
     ++ ") "
     ++ renderDeadlineInfo t.deadline modelTime t.state
+
+pimp :: String -> String
+pimp s = unwords $ map shortenLink (words s)
+
+shortenLink :: String -> String
+shortenLink text =
+  if "http" `isPrefixOf` text
+    then
+      hyperlinkCode text (intercalate "/" (reverse (take 3 (reverse (splitOn "/" text)))))
+    else
+      text
 
 renderDeadlineInfo :: Maybe Integer -> Integer -> TaskState -> String
 renderDeadlineInfo maybeDeadline modelTime taskState =
