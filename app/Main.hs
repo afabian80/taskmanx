@@ -23,6 +23,7 @@ data TaskState
   | Done
   | Cancelled
   | Suspended
+  | Waiting
   deriving (Show, Read, Eq)
 
 renderTaskState :: TaskState -> String
@@ -33,6 +34,7 @@ renderTaskState st =
     Done -> "DONE  "
     Cancelled -> "CANC  "
     Suspended -> "SUSP  "
+    Waiting -> "WAIT  "
 
 colorize :: (Color, Color) -> String -> String
 colorize (bgColor, fgColor) text =
@@ -186,6 +188,7 @@ commandFromInput (InputLine line) =
       | command `elem` cancelCommands -> makeSafeCommand (SetTaskState Cancelled) args
       | command `elem` suspendCommands -> makeSafeCommand (SetTaskState Suspended) args
       | command `elem` deadlineCommands -> makeSafeCommand Deadline args
+      | command `elem` waitCommands -> makeSafeCommand (SetTaskState Waiting) args
       | otherwise -> Left ("Unknown command: " ++ command)
 
 makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
@@ -309,6 +312,9 @@ suspendCommands = ["suspend"]
 deadlineCommands :: [String]
 deadlineCommands = ["deadline"]
 
+waitCommands :: [String]
+waitCommands = ["wait"]
+
 allCommands :: [String]
 allCommands =
   concat
@@ -319,7 +325,8 @@ allCommands =
       doingCommands,
       cancelCommands,
       suspendCommands,
-      deadlineCommands
+      deadlineCommands,
+      waitCommands
     ]
 
 render :: Model -> String
@@ -381,6 +388,7 @@ stateColor st = case st of
   Done -> (Green, Black)
   Cancelled -> (Red, White)
   Suspended -> (Red, White)
+  Waiting -> (Cyan, Black)
 
 secondsInDay :: Integer
 secondsInDay = 86400
