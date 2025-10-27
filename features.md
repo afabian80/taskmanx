@@ -7,7 +7,4 @@
 - colorize IPs
 - leave TODO at defautl color
 - @number shoule be like @2h @1d @20m
-- WAIT state is also needed
-- BUILDING state is needed for jobs
 - cleaning should save the tasks to a separate list, for future reference
-- Next state is needed for prio tasks
