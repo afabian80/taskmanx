@@ -3,6 +3,7 @@
 module Main (main) where
 
 import Control.Monad.IO.Class (liftIO)
+import Data.Char (isSpace)
 import Data.List (intercalate, isInfixOf, isPrefixOf)
 import Data.List.Split (splitOn)
 import Data.Map qualified as Map
@@ -528,7 +529,9 @@ loop model = do
   case mLine of
     Nothing -> liftIO $ putStrLn "\nAborting loop..."
     Just line -> do
-      let msg = inputLineToMsg (InputLine line)
+      let cleanLineBegin = dropWhile isSpace line
+      let cleanLineAll = reverse $ dropWhile isSpace $ reverse cleanLineBegin
+      let msg = inputLineToMsg (InputLine cleanLineAll)
       currentSeconds <- liftIO getCurrentSeconds
       let newModel =
             update
