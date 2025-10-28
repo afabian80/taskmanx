@@ -49,6 +49,7 @@ data TaskState
   | Waiting
   | Building
   | Next
+  | Failed
   deriving (Show, Read, Eq)
 
 renderTaskState :: TaskState -> String
@@ -62,6 +63,7 @@ renderTaskState st =
     Waiting -> "WAIT  "
     Building -> "BUILD "
     Next -> "NEXT  "
+    Failed -> "FAILED"
 
 colorize :: (Color, Color) -> String -> String
 colorize (bgColor, fgColor) text =
@@ -209,6 +211,7 @@ commandFromInput (InputLine line) =
       | command `elem` waitCommands -> makeSafeCommand (SetTaskState Waiting) args
       | command `elem` buildCommands -> makeSafeCommand (SetTaskState Building) args
       | command `elem` nextCommands -> makeSafeCommand (SetTaskState Next) args
+      | command `elem` failedCommands -> makeSafeCommand (SetTaskState Failed) args
       | otherwise -> Left ("Unknown command: " ++ command)
 
 makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
@@ -350,6 +353,9 @@ checkpointCommands = ["cp", "checkpoint"]
 cleanCommands :: [String]
 cleanCommands = ["clean"]
 
+failedCommands :: [String]
+failedCommands = ["fail", "failed"]
+
 allCommands :: [String]
 allCommands =
   concat
@@ -366,7 +372,8 @@ allCommands =
       nextCommands,
       quitCommands,
       checkpointCommands,
-      cleanCommands
+      cleanCommands,
+      failedCommands
     ]
 
 render :: Model -> String
@@ -416,7 +423,7 @@ shortenLink text =
 
 renderDeadlineInfo :: Maybe Integer -> Integer -> TaskState -> String
 renderDeadlineInfo maybeDeadline modelTime taskState =
-  if taskState `elem` [Done, Cancelled, Suspended]
+  if taskState `elem` [Done, Cancelled, Suspended, Failed]
     then
       ""
     else case maybeDeadline of
@@ -442,6 +449,7 @@ stateColor st = case st of
   Waiting -> (Cyan, Black)
   Building -> (Cyan, Black)
   Next -> (Black, White)
+  Failed -> (Red, White)
 
 secondsInDay :: Integer
 secondsInDay = 86400
