@@ -157,40 +157,29 @@ handleLine line model =
 
 updateDeadline :: Model -> String -> Model
 updateDeadline model args =
-  model {tasks = newTasks}
+  case mDeadline of
+    Nothing -> model {_error = Just ("invalid deadline: " ++ deadlineStr)}
+    Just dl -> case mTask of
+      Nothing -> model {_error = Just ("no task with id " ++ indexStr)}
+      Just task -> updateModel model task dl -- model {tasks = newTasks, _error = newError}
   where
-    newTasks = tryUpdateDeadline model maybeIndex maybeNewDeadline
-    maybeIndex = parseTaskIndex (words args)
-    maybeNewDeadline = parseNewDeadline (drop 1 $ words args)
+    indexStr = concat $ take 1 (words args) -- the first word
+    deadlineStr = concat $ take 1 $ drop 1 $ words args -- the second word
+    mIndex = readMaybe indexStr :: Maybe Int
+    mDeadline = readMaybe deadlineStr :: Maybe Integer
+    mTask = case mIndex of
+      Nothing -> Nothing
+      Just index -> lookupTaskAtIndex model.tasks index
 
-    parseTaskIndex :: [String] -> Maybe Integer
-    parseTaskIndex [] = Nothing
-    parseTaskIndex (x : _) = readMaybe x :: Maybe Integer
+    updateModel :: Model -> Task -> Integer -> Model
+    updateModel theModel theTask d =
+      theModel {tasks = map (updateTask theModel theTask d) theModel.tasks}
 
-    parseNewDeadline :: [String] -> Maybe String
-    parseNewDeadline [] = Nothing
-    parseNewDeadline (x : _) = Just x
-
-    -- this is ugly, need to learn more :)
-    tryUpdateDeadline :: Model -> Maybe Integer -> Maybe String -> [Task]
-    tryUpdateDeadline m mi ms =
-      case mi of
-        Nothing -> m.tasks
-        Just i -> case lookupTaskAtIndex m.tasks (fromIntegral i) of
-          Nothing -> m.tasks
-          Just t ->
-            map
-              ( \other ->
-                  if t.title == other.title
-                    then case ms of
-                      Nothing -> other
-                      Just s -> case (readMaybe s :: Maybe Integer) of
-                        Nothing -> other
-                        Just newNumber ->
-                          other {deadline = Just (model.time + newNumber * 60)}
-                    else other
-              )
-              m.tasks
+    updateTask :: Model -> Task -> Integer -> Task -> Task
+    updateTask theModel theTask d aTask =
+      if theTask.title == aTask.title
+        then aTask {deadline = Just (theModel.time + d * 60)}
+        else aTask
 
 commandFromInput :: InputLine -> Either String Command
 commandFromInput (InputLine line) =
