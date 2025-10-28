@@ -29,6 +29,7 @@ dependencies:
 - time
 - ansi-terminal
 - split
+- haskeline
 
 ghc-options:
 - -Wall

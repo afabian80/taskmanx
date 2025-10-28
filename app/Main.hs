@@ -456,7 +456,7 @@ main = do
     then do
       content <- readFile modelFile
       let contentLines = lines content
-      let checkpointLines = take 1 contentLines
+      let checkpointLines = concat $ take 1 contentLines
       let maybeCheckpointInteger = loadMaybeCheckpoint checkpointLines
       let loadedTasks = map (\line -> read line :: Task) (drop 1 contentLines)
       case maybeCheckpointInteger of
@@ -482,9 +482,8 @@ main = do
             doNotBackup = False
           }
 
-loadMaybeCheckpoint :: [String] -> Maybe Integer
-loadMaybeCheckpoint [s] = readMaybe s :: Maybe Integer
-loadMaybeCheckpoint _ = Nothing
+loadMaybeCheckpoint :: String -> Maybe Integer
+loadMaybeCheckpoint s = readMaybe s :: Maybe Integer
 
 loop :: Model -> IO ()
 loop model = do
