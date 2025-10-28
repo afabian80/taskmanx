@@ -340,6 +340,15 @@ buildCommands = ["build", "building", "b"]
 nextCommands :: [String]
 nextCommands = ["next"]
 
+quitCommands :: [String]
+quitCommands = ["q", "quit", "exit"]
+
+checkpointCommands :: [String]
+checkpointCommands = ["cp", "checkpoint"]
+
+cleanCommands :: [String]
+cleanCommands = ["clean"]
+
 allCommands :: [String]
 allCommands =
   concat
@@ -353,7 +362,10 @@ allCommands =
       deadlineCommands,
       waitCommands,
       buildCommands,
-      nextCommands
+      nextCommands,
+      quitCommands,
+      checkpointCommands,
+      cleanCommands
     ]
 
 render :: Model -> String
@@ -543,9 +555,7 @@ getCurrentSeconds = do floor . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds 
 inputLineToMsg :: InputLine -> Msg
 inputLineToMsg (InputLine line)
   | line == "" = Nope
-  | line == "q" = Quit
-  | line == "quit" = Quit
-  | line == "checkpoint" = Checkpoint
-  | line == "cp" = Checkpoint
-  | line == "clean" = Clean
+  | line `elem` quitCommands = Quit
+  | line `elem` checkpointCommands = Checkpoint
+  | line `elem` cleanCommands = Clean
   | otherwise = Command (InputLine line)
