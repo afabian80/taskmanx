@@ -2,15 +2,37 @@
 
 module Main (main) where
 
+import Control.Monad.IO.Class (liftIO)
 import Data.List (intercalate, isInfixOf, isPrefixOf)
 import Data.List.Split (splitOn)
 import Data.Map qualified as Map
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
 import System.Console.ANSI
+import System.Console.Haskeline
 import System.Directory (doesFileExist)
 import Text.Printf
 import Text.Read (readMaybe)
+
+searchFunc :: String -> [Completion]
+searchFunc str =
+  map simpleCompletion $
+    filter (str `isPrefixOf`) allCommands
+
+myCompletionFunc :: (Monad m) => CompletionFunc m
+myCompletionFunc =
+  completeWord
+    Nothing -- No escape character
+    " \t" -- Space and tab are word break characters
+    (return . searchFunc)
+
+mySettings :: Settings IO
+mySettings =
+  Settings
+    { historyFile = Just "history.txt",
+      complete = myCompletionFunc,
+      autoAddHistory = True
+    }
 
 newtype InputLine = InputLine String deriving (Show)
 
@@ -121,7 +143,6 @@ handleLine line model =
               deadline = newDeadline
             }
         newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
-        -- hyperTitle = unwords $ map fixLink (words newTitle)
         newDeadline = calculateDeadline taskTitle model.time
         newState = if "/job/" `isInfixOf` newTitle then Building else Todo
     Right (DeleteTask task) -> deleteTask model task
@@ -449,18 +470,18 @@ showTimeRounded (0, h, _, _) = show h ++ "h"
 showTimeRounded (d, _, _, _) = show d ++ "d"
 
 main :: IO ()
-main = do
-  exists <- doesFileExist modelFile
-  currentSeconds <- getCurrentSeconds
+main = runInputT mySettings $ do
+  exists <- liftIO $ doesFileExist modelFile
+  currentSeconds <- liftIO $ getCurrentSeconds
   if exists
     then do
-      content <- readFile modelFile
+      content <- liftIO $ readFile modelFile
       let contentLines = lines content
       let checkpointLines = concat $ take 1 contentLines
       let maybeCheckpointInteger = loadMaybeCheckpoint checkpointLines
       let loadedTasks = map (\line -> read line :: Task) (drop 1 contentLines)
       case maybeCheckpointInteger of
-        Nothing -> putStrLn "Error in checkpoint line!"
+        Nothing -> liftIO $ putStrLn "Error in checkpoint line!"
         Just cp ->
           loop
             Model
@@ -485,31 +506,36 @@ main = do
 loadMaybeCheckpoint :: String -> Maybe Integer
 loadMaybeCheckpoint s = readMaybe s :: Maybe Integer
 
-loop :: Model -> IO ()
+loop :: Model -> InputT IO ()
 loop model = do
-  setCursorPosition 0 0
-  clearScreen
-  putStrLn $ render model
-  putStrLn "Enter a command ('q' to quit): "
-  line <- getLine
-  let msg = inputLineToMsg (InputLine line)
-  currentSeconds <- getCurrentSeconds
-  let newModel =
-        update
-          msg
-          model
-            { time = currentSeconds
-            }
-  let newCounter = currentSeconds `mod` 100
-  let backupName = "/tmp/model." ++ show newCounter ++ ".txt"
-  let modelString = unlines (show model.checkpoint : map show newModel.tasks)
-  writeFile modelFile modelString
-  if newModel.doNotBackup then mempty else writeFile backupName modelString
-  if newModel.quit
-    then do
-      putStrLn "Bye!"
-    else do
-      loop newModel
+  liftIO $ setCursorPosition 0 0
+  liftIO $ clearScreen
+  liftIO $ putStrLn $ render model
+  liftIO $ putStrLn "Enter a command ('q' to quit): "
+  mLine <- getInputLine ">>> "
+  case mLine of
+    Nothing -> liftIO $ putStrLn "\nAborting loop..."
+    Just line -> do
+      let msg = inputLineToMsg (InputLine line)
+      currentSeconds <- liftIO getCurrentSeconds
+      let newModel =
+            update
+              msg
+              model
+                { time = currentSeconds
+                }
+      let newCounter = currentSeconds `mod` 100
+      let backupName = "/tmp/model." ++ show newCounter ++ ".txt"
+      let modelString = unlines (show model.checkpoint : map show newModel.tasks)
+      liftIO $ writeFile modelFile modelString
+      if newModel.doNotBackup
+        then return ()
+        else liftIO $ writeFile backupName modelString
+      if newModel.quit
+        then do
+          liftIO $ putStrLn "Bye!"
+        else do
+          loop newModel
 
 getCurrentSeconds :: IO Integer
 getCurrentSeconds = do floor . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> getCurrentTime
