@@ -445,11 +445,17 @@ renderIndexedTask modelTime checkpointTime (i, t) =
     ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ " "
     ++ renderCheckpointInfo t.timestamp checkpointTime
-    ++ (colorizeIP . fixLink) t.title
+    ++ (colorizeTags . colorizeIP . fixLink) t.title
     ++ " ("
     ++ renderTime modelTime t.timestamp
     ++ ") "
     ++ renderDeadlineInfo t.deadline modelTime t.state
+
+colorizeTags :: String -> String
+colorizeTags t = newTitle
+  where
+    newTitle = unwords $ map colorTag (words t)
+    colorTag w = if "#" `isPrefixOf` w then colorize (Cyan, Black) w else w
 
 colorizeIP :: String -> String
 colorizeIP s =
