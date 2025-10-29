@@ -4,7 +4,7 @@ module Main (main) where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Char (isSpace)
-import Data.List (intercalate, isInfixOf, isPrefixOf)
+import Data.List (intercalate, isInfixOf, isPrefixOf, sort)
 import Data.List.Split (splitOn)
 import Data.Map qualified as Map
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime, nominalDiffTimeToSeconds)
@@ -19,7 +19,7 @@ import Text.Regex (mkRegex, subRegex)
 searchFunc :: String -> [Completion]
 searchFunc str =
   map simpleCompletion $
-    filter (str `isPrefixOf`) allCommands
+    filter (str `isPrefixOf`) sortedCommands
 
 myCompletionFunc :: (Monad m) => CompletionFunc m
 myCompletionFunc =
@@ -413,6 +413,9 @@ allCommands =
       failedCommands,
       numberCommands
     ]
+
+sortedCommands :: [String]
+sortedCommands = sort allCommands
 
 render :: Model -> String
 render model = renderCheckpointTime model ++ renderTasks model ++ renderDebugInfo model
