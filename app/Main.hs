@@ -73,12 +73,6 @@ colorize (bgColor, fgColor) text =
     ++ text
     ++ setSGRCode [Reset]
 
--- underline :: String -> String
--- underline text =
---   setSGRCode [SetUnderlining SingleUnderline]
---     ++ text
---     ++ setSGRCode [SetUnderlining NoUnderline]
-
 data Task = Task
   { title :: String,
     state :: TaskState,
@@ -211,7 +205,7 @@ updateDeadline model args =
     Nothing -> model {_error = Just ("invalid deadline: " ++ deadlineStr)}
     Just dl -> case mTask of
       Nothing -> model {_error = Just ("no task with id " ++ indexStr)}
-      Just task -> updateModel model task dl -- model {tasks = newTasks, _error = newError}
+      Just task -> updateModel model task dl
   where
     indexStr = concat $ take 1 (words args) -- the first word
     deadlineStr = concat $ take 1 $ drop 1 $ words args -- the second word
@@ -521,12 +515,6 @@ renderTime :: Integer -> Integer -> String
 renderTime modelTime taskTime = showTimeRounded (d, h, m, s)
   where
     (d, h, m, s) = toDHMS (modelTime - taskTime)
-
--- showTime :: (Integer, Integer, Integer, Integer) -> String
--- showTime (0, 0, 0, s) = show s ++ "s"
--- showTime (0, 0, m, s) = show m ++ "m " ++ show s ++ "s"
--- showTime (0, h, m, s) = show h ++ "h " ++ show m ++ "m " ++ show s ++ "s"
--- showTime (d, h, m, s) = show d ++ "d " ++ show h ++ "h " ++ show m ++ "m " ++ show s ++ "s"
 
 showTimeRounded :: (Integer, Integer, Integer, Integer) -> String
 showTimeRounded (0, 0, 0, s) = show s ++ "s"
