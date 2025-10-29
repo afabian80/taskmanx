@@ -14,6 +14,7 @@ import System.Console.Haskeline
 import System.Directory (doesFileExist)
 import Text.Printf
 import Text.Read (readMaybe)
+import Text.Regex (mkRegex, subRegex)
 
 searchFunc :: String -> [Completion]
 searchFunc str =
@@ -109,6 +110,7 @@ data Command
   | DeleteTask String
   | SetTaskState TaskState String
   | Deadline String
+  | SetNumber String
   deriving (Show)
 
 update :: Msg -> Model -> Model
@@ -151,9 +153,57 @@ handleLine line model =
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Right (Deadline args) -> updateDeadline model args
+    Right (SetNumber args) -> updateBuildNumberStr model args
     Left e -> model {_error = Just e}
   where
     command = commandFromInput line
+
+updateBuildNumberStr :: Model -> String -> Model
+updateBuildNumberStr model args =
+  case mIndex of
+    Nothing -> model {_error = Just ("Not a valid task index: " ++ indexStr)}
+    Just index ->
+      case mNumber of
+        Nothing -> model {_error = Just ("Not a valid number: " ++ numberStr)}
+        Just buildNumber -> updateBuildNumber model index buildNumber
+  where
+    indexStr = concat (take 1 (words args))
+    numberStr = (concat (take 1 (drop 1 (words args))))
+    mIndex = readMaybe indexStr :: Maybe Int
+    mNumber = readMaybe numberStr :: Maybe Int
+
+updateBuildNumber :: Model -> Int -> Int -> Model
+updateBuildNumber model index buildNumber =
+  case mTask of
+    Nothing -> model {_error = Just ("No task with index " ++ show index)}
+    Just task -> model {tasks = map (updateTask task buildNumber) model.tasks}
+  where
+    mTask = lookupTaskAtIndex model.tasks index
+
+    updateTask :: Task -> Int -> Task -> Task
+    updateTask theTask bn aTask =
+      if theTask.title == aTask.title
+        then
+          aTask {title = replaceBuildNumber bn aTask.title}
+        else
+          aTask
+
+    replaceBuildNumberInWord :: Int -> String -> String
+    replaceBuildNumberInWord nn word =
+      if "http://" `isPrefixOf` word || "https://" `isPrefixOf` word
+        then subRegex regex word replaced
+        else word
+      where
+        regexPattern = "[0-9]+/?$"
+        regex = mkRegex regexPattern
+        replaced = show nn ++ "/"
+
+    replaceBuildNumber :: Int -> String -> String
+    replaceBuildNumber nn t =
+      unwords updatedWords
+      where
+        wordsList = words t
+        updatedWords = map (replaceBuildNumberInWord nn) wordsList
 
 updateDeadline :: Model -> String -> Model
 updateDeadline model args =
@@ -201,6 +251,7 @@ commandFromInput (InputLine line) =
       | command `elem` buildCommands -> makeSafeCommand (SetTaskState Building) args
       | command `elem` nextCommands -> makeSafeCommand (SetTaskState Next) args
       | command `elem` failedCommands -> makeSafeCommand (SetTaskState Failed) args
+      | command `elem` numberCommands -> makeSafeCommand SetNumber args
       | otherwise -> Left ("Unknown command: " ++ command)
 
 makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
@@ -345,6 +396,9 @@ cleanCommands = ["clean"]
 failedCommands :: [String]
 failedCommands = ["failed"]
 
+numberCommands :: [String]
+numberCommands = ["setbuildnumber", "sbn"]
+
 allCommands :: [String]
 allCommands =
   concat
@@ -362,7 +416,8 @@ allCommands =
       quitCommands,
       checkpointCommands,
       cleanCommands,
-      failedCommands
+      failedCommands,
+      numberCommands
     ]
 
 render :: Model -> String

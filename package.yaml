@@ -30,6 +30,7 @@ dependencies:
 - ansi-terminal
 - split
 - haskeline
+- regex-compat
 
 ghc-options:
 - -Wall
