@@ -379,10 +379,10 @@ nextCommands :: [String]
 nextCommands = ["next"]
 
 quitCommands :: [String]
-quitCommands = ["exit", "quit"]
+quitCommands = ["exit", "quit", "q"]
 
 checkpointCommands :: [String]
-checkpointCommands = ["checkpoint"]
+checkpointCommands = ["checkpoint", "cp"]
 
 cleanCommands :: [String]
 cleanCommands = ["clean"]
