@@ -445,11 +445,19 @@ renderIndexedTask modelTime checkpointTime (i, t) =
     ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ " "
     ++ renderCheckpointInfo t.timestamp checkpointTime
-    ++ fixLink t.title
+    ++ (colorizeIP . fixLink) t.title
     ++ " ("
     ++ renderTime modelTime t.timestamp
     ++ ") "
     ++ renderDeadlineInfo t.deadline modelTime t.state
+
+colorizeIP :: String -> String
+colorizeIP s =
+  subRegex regex s replaced
+  where
+    ipPattern = "([0-9]{1,3}\\.){3}[0-9]{1,3}"
+    regex = mkRegex ipPattern
+    replaced = colorize (Yellow, Black) "\\0"
 
 fixLink :: String -> String
 fixLink s = unwords $ map shortenLink (words s)
