@@ -55,19 +55,19 @@ data TaskState
 renderTaskState :: TaskState -> String
 renderTaskState st =
   case st of
-    Todo -> "TODO  "
-    Doing -> "DOING "
-    Done -> "DONE  "
-    Cancelled -> "CANC  "
-    Suspended -> "SUSP  "
-    Waiting -> "WAIT  "
-    Building -> "BUILD "
-    Next -> "NEXT  "
-    Failed -> "FAILED"
+    Todo -> printf "%-9s" "TODO"
+    Doing -> printf "%-9s" "DOING"
+    Done -> printf "%-9s" "DONE"
+    Cancelled -> printf "%-9s" "CANCELLED"
+    Suspended -> printf "%-9s" "SUSPENDED"
+    Waiting -> printf "%-9s" "WAITING"
+    Building -> printf "%-9s" "BUILDING"
+    Next -> printf "%-9s" "NEXT"
+    Failed -> printf "%-9s" "FAILED"
 
 colorize :: (Color, Color) -> String -> String
 colorize (bgColor, fgColor) text =
-  setSGRCode [SetColor Background Dull bgColor]
+  setSGRCode [SetColor Background Vivid bgColor]
     ++ setSGRCode [SetColor Foreground Dull fgColor]
     ++ text
     ++ setSGRCode [Reset]
@@ -301,10 +301,10 @@ deleteTaskByTitle model taskTitle =
     taskTitles = map title model.tasks
 
 addCommands :: [String]
-addCommands = ["new", "add", "a"]
+addCommands = ["new", "add"]
 
 delCommands :: [String]
-delCommands = ["del", "delete", "d", "rm", "remove"]
+delCommands = ["delete", "remove"]
 
 doneCommands :: [String]
 doneCommands = ["done"]
@@ -316,7 +316,7 @@ doingCommands :: [String]
 doingCommands = ["doing", "now"]
 
 cancelCommands :: [String]
-cancelCommands = ["cancel", "canc"]
+cancelCommands = ["cancel"]
 
 suspendCommands :: [String]
 suspendCommands = ["suspend"]
@@ -328,22 +328,22 @@ waitCommands :: [String]
 waitCommands = ["wait"]
 
 buildCommands :: [String]
-buildCommands = ["build", "building", "b"]
+buildCommands = ["building"]
 
 nextCommands :: [String]
 nextCommands = ["next"]
 
 quitCommands :: [String]
-quitCommands = ["q", "quit", "exit"]
+quitCommands = ["exit", "quit"]
 
 checkpointCommands :: [String]
-checkpointCommands = ["cp", "checkpoint"]
+checkpointCommands = ["checkpoint"]
 
 cleanCommands :: [String]
 cleanCommands = ["clean"]
 
 failedCommands :: [String]
-failedCommands = ["fail", "failed"]
+failedCommands = ["failed"]
 
 allCommands :: [String]
 allCommands =
@@ -406,7 +406,7 @@ shortenLink :: String -> String
 shortenLink text =
   if "http" `isPrefixOf` text
     then
-      hyperlinkCode text (intercalate "/" (reverse (take 3 (reverse (splitOn "/" text)))))
+      colorize (Black, White) ("URL:") ++ " " ++ hyperlinkCode text (intercalate "/" (reverse (take 3 (reverse (splitOn "/" text)))))
     else
       text
 
@@ -524,7 +524,7 @@ loop model = do
   liftIO $ putStrLn "Enter a command ('q' to quit): "
   mLine <- getInputLine ">>> "
   case mLine of
-    Nothing -> liftIO $ putStrLn "\nAborting loop..."
+    Nothing -> liftIO $ putStrLn "\nBye!"
     Just line -> do
       let cleanLineBegin = dropWhile isSpace line
       let cleanLineAll = reverse $ dropWhile isSpace $ reverse cleanLineBegin
