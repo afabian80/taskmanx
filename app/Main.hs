@@ -4,7 +4,7 @@ module Main (main) where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Char (isNumber, isSpace)
-import Data.List (find, intercalate, isInfixOf, isPrefixOf, sort)
+import Data.List (find, intercalate, isInfixOf, isPrefixOf, sort, sortOn)
 import Data.List.Split (splitOn)
 import Data.Set qualified as Set
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime, nominalDiffTimeToSeconds)
@@ -267,7 +267,7 @@ updateDeadline model args =
     updateTask :: Model -> Task -> Integer -> Integer -> Task -> Task
     updateTask theModel theTask d multi aTask =
       if theTask.title == aTask.title
-        then aTask {deadline = Just (theModel.time + d * multi)}
+        then aTask {deadline = Just (theModel.time + d * multi), timestamp = model.time}
         else aTask
 
 commandFromInput :: InputLine -> Either String Command
@@ -473,14 +473,17 @@ renderDebugInfo _ = ""
 renderTasks :: Model -> String
 renderTasks model =
   let taskLines :: [String]
-      taskLines = map (renderIndexedTask model.time model.checkpoint) model.tasks
+      taskLines = map (renderTaskLine model.time model.checkpoint) sortedTasks
 
       modelError Nothing = ""
       modelError (Just e) = colorize errorColor ("ERROR: " ++ e)
+
+      sortedTasks :: [Task]
+      sortedTasks = sortOn timestamp model.tasks
    in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
 
-renderIndexedTask :: Integer -> Integer -> Task -> String
-renderIndexedTask modelTime checkpointTime t =
+renderTaskLine :: Integer -> Integer -> Task -> String
+renderTaskLine modelTime checkpointTime t =
   printf "%3d" t.taskID
     ++ ". "
     ++ colorize (stateColor t.state) (renderTaskState t.state)
