@@ -186,7 +186,7 @@ updateBuildNumberStr model args =
         Just buildNumber -> updateBuildNumber model index buildNumber
   where
     indexStr = concat (take 1 (words args))
-    numberStr = (concat (take 1 (drop 1 (words args))))
+    numberStr = concat (take 1 (drop 1 (words args)))
     mIndex = readMaybe indexStr :: Maybe Int
     mNumber = readMaybe numberStr :: Maybe Int
 
@@ -512,7 +512,7 @@ shortenLink :: String -> String
 shortenLink text =
   if "http" `isPrefixOf` text
     then
-      colorize urlColor ("URL:") ++ " " ++ hyperlinkCode text (intercalate "/" (reverse (take 3 (reverse (splitOn "/" text)))))
+      colorize urlColor "URL:" ++ " " ++ hyperlinkCode text (intercalate "/" (reverse (take 3 (reverse (splitOn "/" text)))))
     else
       text
 
@@ -582,7 +582,7 @@ showTimeRounded (d, _, _, _) = show d ++ "d"
 main :: IO ()
 main = runInputT mySettings $ do
   exists <- liftIO $ doesFileExist modelFile
-  currentSeconds <- liftIO $ getCurrentSeconds
+  currentSeconds <- liftIO getCurrentSeconds
   if exists
     then do
       content <- liftIO $ readFile modelFile
@@ -621,7 +621,7 @@ loadMaybeCheckpoint s = readMaybe s :: Maybe Integer
 loop :: Model -> InputT IO ()
 loop model = do
   liftIO $ setCursorPosition 0 0
-  liftIO $ clearScreen
+  liftIO clearScreen
   liftIO $ putStrLn $ render model
   liftIO $ putStrLn "Enter a command ('q' to quit): "
   mLine <- getInputLine ">>> "
