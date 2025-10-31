@@ -3,7 +3,7 @@
 module Main (main) where
 
 import Control.Monad.IO.Class (liftIO)
-import Data.Char (isSpace)
+import Data.Char (isNumber, isSpace)
 import Data.List (intercalate, isInfixOf, isPrefixOf, sort)
 import Data.List.Split (splitOn)
 import Data.Map qualified as Map
@@ -15,6 +15,27 @@ import System.Directory (doesFileExist)
 import Text.Printf
 import Text.Read (readMaybe)
 import Text.Regex (mkRegex, subRegex)
+
+errorColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
+errorColor = ((Red, Dull), (White, Dull))
+
+prioColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
+prioColor = ((Magenta, Vivid), (Black, Dull))
+
+tagColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
+tagColor = ((Cyan, Vivid), (Black, Dull))
+
+ipColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
+ipColor = ((Yellow, Vivid), (Black, Dull))
+
+urlColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
+urlColor = ((Magenta, Vivid), (White, Vivid))
+
+timeoutColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
+timeoutColor = ((Red, Dull), (White, Vivid))
+
+deadlineColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
+deadlineColor = ((Cyan, Vivid), (Black, Dull))
 
 searchFunc :: String -> [Completion]
 searchFunc str =
@@ -66,10 +87,10 @@ renderTaskState st =
     Next -> printf "%-9s" "NEXT"
     Failed -> printf "%-9s" "FAILED"
 
-colorize :: (Color, Color) -> String -> String
-colorize (bgColor, fgColor) text =
-  setSGRCode [SetColor Background Vivid bgColor]
-    ++ setSGRCode [SetColor Foreground Dull fgColor]
+colorize :: ((Color, ColorIntensity), (Color, ColorIntensity)) -> String -> String
+colorize ((bgColor, bgIntensity), (fgColor, fgIntensity)) text =
+  setSGRCode [SetColor Background bgIntensity bgColor]
+    ++ setSGRCode [SetColor Foreground fgIntensity fgColor]
     ++ text
     ++ setSGRCode [Reset]
 
@@ -87,7 +108,8 @@ data Model = Model
     _error :: Maybe String,
     time :: Integer,
     checkpoint :: Integer,
-    doNotBackup :: Bool
+    doNotBackup :: Bool,
+    trash :: [String]
   }
   deriving (Show)
 
@@ -113,18 +135,20 @@ update msg tempModel =
     Quit -> model {quit = True}
     Nope -> model {doNotBackup = True}
     Checkpoint -> model {checkpoint = model.time}
-    Clean -> model {tasks = cleanUpTasks model}
+    Clean -> model {tasks = keep, trash = map title waste}
     Command line -> handleLine line model
   where
-    model = tempModel {_error = Nothing, doNotBackup = False}
+    model = tempModel {_error = Nothing, doNotBackup = False, trash = []}
+    (keep, waste) = cleanUpTasks model
 
-cleanUpTasks :: Model -> [Task]
-cleanUpTasks model = newTasks
+cleanUpTasks :: Model -> ([Task], [Task])
+cleanUpTasks model = (newTasks, tasksToRemove)
   where
     newTasks = filter (toBeCleaned model.checkpoint) model.tasks
+    tasksToRemove = filter (not . toBeCleaned model.checkpoint) model.tasks
     toBeCleaned :: Integer -> Task -> Bool
     toBeCleaned checkpointTime task =
-      not (task.state `elem` [Done, Cancelled] && task.timestamp <= checkpointTime)
+      not (task.state `elem` [Done, Cancelled, Failed] && task.timestamp <= checkpointTime)
 
 handleLine :: InputLine -> Model -> Model
 handleLine line model =
@@ -205,24 +229,34 @@ updateDeadline model args =
     Nothing -> model {_error = Just ("invalid deadline: " ++ deadlineStr)}
     Just dl -> case mTask of
       Nothing -> model {_error = Just ("no task with id " ++ indexStr)}
-      Just task -> updateModel model task dl
+      Just task -> case mUnitMultiplier of
+        Nothing -> model {_error = Just ("invalid unit: " ++ deadlineUnitStr)}
+        Just multi -> updateModel model task dl multi
   where
     indexStr = concat $ take 1 (words args) -- the first word
     deadlineStr = concat $ take 1 $ drop 1 $ words args -- the second word
+    deadlineNumberStr = takeWhile isNumber deadlineStr
+    deadlineUnitStr = dropWhile isNumber deadlineStr
     mIndex = readMaybe indexStr :: Maybe Int
-    mDeadline = readMaybe deadlineStr :: Maybe Integer
+    mDeadline = readMaybe deadlineNumberStr :: Maybe Integer
+    mUnitMultiplier = case deadlineUnitStr of
+      "" -> Just 60
+      "m" -> Just 60
+      "h" -> Just (60 * 60)
+      "d" -> Just (24 * 60 * 60)
+      _ -> Nothing
     mTask = case mIndex of
       Nothing -> Nothing
       Just index -> lookupTaskAtIndex model.tasks index
 
-    updateModel :: Model -> Task -> Integer -> Model
-    updateModel theModel theTask d =
-      theModel {tasks = map (updateTask theModel theTask d) theModel.tasks}
+    updateModel :: Model -> Task -> Integer -> Integer -> Model
+    updateModel theModel theTask d multi =
+      theModel {tasks = map (updateTask theModel theTask d multi) theModel.tasks}
 
-    updateTask :: Model -> Task -> Integer -> Task -> Task
-    updateTask theModel theTask d aTask =
+    updateTask :: Model -> Task -> Integer -> Integer -> Task -> Task
+    updateTask theModel theTask d multi aTask =
       if theTask.title == aTask.title
-        then aTask {deadline = Just (theModel.time + d * 60)}
+        then aTask {deadline = Just (theModel.time + d * multi)}
         else aTask
 
 commandFromInput :: InputLine -> Either String Command
@@ -338,7 +372,7 @@ deleteTaskByTitle :: Model -> String -> Model
 deleteTaskByTitle model taskTitle =
   if taskTitle `elem` taskTitles
     then
-      model {tasks = newTaskList}
+      model {tasks = newTaskList, trash = model.trash ++ [taskTitle]}
     else
       model {_error = Just $ "Cannot delete " ++ taskTitle}
   where
@@ -435,7 +469,7 @@ renderTasks model =
       taskLines = map (renderIndexedTask model.time model.checkpoint) indexTaskPairs
 
       modelError Nothing = ""
-      modelError (Just e) = colorize (Red, White) ("ERROR: " ++ e)
+      modelError (Just e) = colorize errorColor ("ERROR: " ++ e)
    in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
 
 renderIndexedTask :: Integer -> Integer -> (Int, Task) -> String
@@ -455,13 +489,13 @@ colorizePrio :: String -> String
 colorizePrio t = newTitle
   where
     newTitle = unwords $ map colorPrio (words t)
-    colorPrio w = if "/" `isPrefixOf` w then colorize (Magenta, Black) w else w
+    colorPrio w = if "/" `isPrefixOf` w then colorize prioColor w else w
 
 colorizeTags :: String -> String
 colorizeTags t = newTitle
   where
     newTitle = unwords $ map colorTag (words t)
-    colorTag w = if "#" `isPrefixOf` w then colorize (Cyan, Black) w else w
+    colorTag w = if "#" `isPrefixOf` w then colorize tagColor w else w
 
 colorizeIP :: String -> String
 colorizeIP s =
@@ -469,7 +503,7 @@ colorizeIP s =
   where
     ipPattern = "([0-9]{1,3}\\.){3}[0-9]{1,3}"
     regex = mkRegex ipPattern
-    replaced = colorize (Yellow, Black) "\\0"
+    replaced = colorize ipColor "\\0"
 
 fixLink :: String -> String
 fixLink s = unwords $ map shortenLink (words s)
@@ -478,7 +512,7 @@ shortenLink :: String -> String
 shortenLink text =
   if "http" `isPrefixOf` text
     then
-      colorize (Black, White) ("URL:") ++ " " ++ hyperlinkCode text (intercalate "/" (reverse (take 3 (reverse (splitOn "/" text)))))
+      colorize urlColor ("URL:") ++ " " ++ hyperlinkCode text (intercalate "/" (reverse (take 3 (reverse (splitOn "/" text)))))
     else
       text
 
@@ -491,26 +525,26 @@ renderDeadlineInfo maybeDeadline modelTime taskState =
       Nothing -> ""
       Just deadlineTime ->
         if deadlineTime <= modelTime
-          then colorize (Red, White) "TIMED OUT!"
+          then colorize timeoutColor "TIMED OUT!"
           else deadlineInfo deadlineTime
   where
-    deadlineInfo endTS = colorize (Cyan, Black) ("[by " ++ convertPosixToTimeStr endTS ++ "]")
+    deadlineInfo endTS = colorize deadlineColor ("[by " ++ convertPosixToTimeStr endTS ++ "]")
 
 renderCheckpointInfo :: Integer -> Integer -> [Char]
 renderCheckpointInfo taskTime checkpointTime =
   if taskTime > checkpointTime then "🟡 " else ""
 
-stateColor :: TaskState -> (Color, Color)
+stateColor :: TaskState -> ((Color, ColorIntensity), (Color, ColorIntensity))
 stateColor st = case st of
-  Todo -> (White, Black)
-  Doing -> (Yellow, Black)
-  Done -> (Green, Black)
-  Cancelled -> (Red, White)
-  Suspended -> (Red, White)
-  Waiting -> (Cyan, Black)
-  Building -> (Cyan, Black)
-  Next -> (Black, White)
-  Failed -> (Red, White)
+  Todo -> ((White, Vivid), (Black, Dull))
+  Doing -> ((Yellow, Vivid), (Black, Dull))
+  Done -> ((Green, Vivid), (Black, Dull))
+  Cancelled -> ((Magenta, Vivid), (White, Vivid))
+  Suspended -> ((Magenta, Vivid), (White, Vivid))
+  Waiting -> ((Cyan, Vivid), (Black, Dull))
+  Building -> ((Cyan, Dull), (Black, Dull))
+  Next -> ((Black, Dull), (White, Vivid))
+  Failed -> ((Red, Dull), (White, Vivid))
 
 secondsInDay :: Integer
 secondsInDay = 86400
@@ -566,7 +600,8 @@ main = runInputT mySettings $ do
                 _error = Nothing,
                 time = currentSeconds,
                 checkpoint = cp,
-                doNotBackup = False
+                doNotBackup = False,
+                trash = []
               }
     else do
       loop
@@ -576,7 +611,8 @@ main = runInputT mySettings $ do
             _error = Nothing,
             time = currentSeconds,
             checkpoint = currentSeconds,
-            doNotBackup = False
+            doNotBackup = False,
+            trash = []
           }
 
 loadMaybeCheckpoint :: String -> Maybe Integer
@@ -609,6 +645,11 @@ loop model = do
       if newModel.doNotBackup
         then return ()
         else liftIO $ writeFile backupName modelString
+      if not $ null newModel.trash
+        then
+          liftIO $ appendFile "trash.txt" (unlines newModel.trash)
+        else
+          return ()
       if newModel.quit
         then do
           liftIO $ putStrLn "Bye!"
