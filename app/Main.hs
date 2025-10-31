@@ -6,7 +6,6 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Char (isNumber, isSpace)
 import Data.List (find, intercalate, isInfixOf, isPrefixOf, sort)
 import Data.List.Split (splitOn)
-import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
@@ -186,7 +185,7 @@ generateTaskId usedIds maxId =
       firstAvailable = find (\n -> n > maxId || not (Set.member n usedSet)) potentialIds
    in case firstAvailable of
         Just n | n <= maxId -> n
-        _ -> 1111
+        _ -> error "too many tasks"
 
 updateBuildNumberStr :: Model -> String -> Model
 updateBuildNumberStr model args =
@@ -199,10 +198,10 @@ updateBuildNumberStr model args =
   where
     indexStr = concat (take 1 (words args))
     numberStr = concat (take 1 (drop 1 (words args)))
-    mIndex = readMaybe indexStr :: Maybe Int
+    mIndex = readMaybe indexStr :: Maybe Integer
     mNumber = readMaybe numberStr :: Maybe Int
 
-updateBuildNumber :: Model -> Int -> Int -> Model
+updateBuildNumber :: Model -> Integer -> Int -> Model
 updateBuildNumber model index buildNumber =
   case mTask of
     Nothing -> model {_error = Just ("No task with index " ++ show index)}
@@ -249,7 +248,7 @@ updateDeadline model args =
     deadlineStr = concat $ take 1 $ drop 1 $ words args -- the second word
     deadlineNumberStr = takeWhile isNumber deadlineStr
     deadlineUnitStr = dropWhile isNumber deadlineStr
-    mIndex = readMaybe indexStr :: Maybe Int
+    mIndex = readMaybe indexStr :: Maybe Integer
     mDeadline = readMaybe deadlineNumberStr :: Maybe Integer
     mUnitMultiplier = case deadlineUnitStr of
       "" -> Just 60
@@ -340,9 +339,9 @@ setTaskStateByIndexText model indexText newState =
     Nothing -> model {_error = Just "This command needs an index argument!"}
     Just index -> setTaskStateByIndexInt model index newState
   where
-    maybeIndex = readMaybe indexText :: Maybe Int
+    maybeIndex = readMaybe indexText :: Maybe Integer
 
-setTaskStateByIndexInt :: Model -> Int -> TaskState -> Model
+setTaskStateByIndexInt :: Model -> Integer -> TaskState -> Model
 setTaskStateByIndexInt model index newState =
   case taskAtIndex of
     Nothing -> model {_error = Just $ "No task with index " ++ show index}
@@ -363,9 +362,9 @@ deleteTask model task =
     Nothing -> deleteTaskByTitle model task
     Just index -> deleteTaskByIndex model index
   where
-    maybeIndex = readMaybe task :: Maybe Int
+    maybeIndex = readMaybe task :: Maybe Integer
 
-deleteTaskByIndex :: Model -> Int -> Model
+deleteTaskByIndex :: Model -> Integer -> Model
 deleteTaskByIndex model index =
   case taskAtIndex of
     Nothing -> model {_error = Just $ "No task with index " ++ show index}
@@ -373,12 +372,11 @@ deleteTaskByIndex model index =
   where
     taskAtIndex = lookupTaskAtIndex model.tasks index
 
-lookupTaskAtIndex :: [Task] -> Int -> Maybe Task
+lookupTaskAtIndex :: [Task] -> Integer -> Maybe Task
 lookupTaskAtIndex taskList index =
-  Map.lookup index taskMap
+  if null matches then Nothing else Just $ head matches
   where
-    pairs = zip [1 ..] taskList
-    taskMap = Map.fromList pairs
+    matches = take 1 $ filter (\t -> t.taskID == index) taskList
 
 deleteTaskByTitle :: Model -> String -> Model
 deleteTaskByTitle model taskTitle =
@@ -474,22 +472,17 @@ renderDebugInfo _ = ""
 
 renderTasks :: Model -> String
 renderTasks model =
-  let indexTaskPairs :: [(Int, Task)]
-      indexTaskPairs = zip [1 :: Int ..] model.tasks
-
-      taskLines :: [String]
-      taskLines = map (renderIndexedTask model.time model.checkpoint) indexTaskPairs
+  let taskLines :: [String]
+      taskLines = map (renderIndexedTask model.time model.checkpoint) model.tasks
 
       modelError Nothing = ""
       modelError (Just e) = colorize errorColor ("ERROR: " ++ e)
    in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
 
-renderIndexedTask :: Integer -> Integer -> (Int, Task) -> String
-renderIndexedTask modelTime checkpointTime (i, t) =
-  printf "%3d" i
-    ++ ". ["
-    ++ show t.taskID
-    ++ "] "
+renderIndexedTask :: Integer -> Integer -> Task -> String
+renderIndexedTask modelTime checkpointTime t =
+  printf "%3d" t.taskID
+    ++ ". "
     ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ " "
     ++ renderCheckpointInfo t.timestamp checkpointTime
