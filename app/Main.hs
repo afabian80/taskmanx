@@ -4,8 +4,9 @@ module Main (main) where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Char (isNumber, isSpace)
-import Data.List (find, intercalate, isInfixOf, isPrefixOf, sort, sortOn)
+import Data.List (find, intercalate, isInfixOf, isPrefixOf, sort, sortBy)
 import Data.List.Split (splitOn)
+import Data.Ord (comparing)
 import Data.Set qualified as Set
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
@@ -99,7 +100,8 @@ data Task = Task
     state :: TaskState,
     timestamp :: Integer,
     deadline :: Maybe Integer,
-    taskID :: Integer
+    taskID :: Integer,
+    topic :: String
   }
   deriving (Show, Read, Eq)
 
@@ -165,11 +167,15 @@ handleLine line model =
               state = newState,
               timestamp = model.time,
               deadline = newDeadline,
-              taskID = generateTaskId model.tasks 1000
+              taskID = generateTaskId model.tasks 1000,
+              topic = if null newTopic then "   " else newTopic
             }
-        newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
+        filterWords = ["@", "="]
+        startsWihFilterWords w = any (\prefix -> isPrefixOf prefix w) filterWords
+        newTitle = unwords $ filter (not . startsWihFilterWords) (words taskTitle)
         newDeadline = calculateDeadline taskTitle model.time
         newState = if "/job/" `isInfixOf` newTitle then Building else Todo
+        newTopic = unwords $ map (drop 1) $ filter (isPrefixOf "=") (words taskTitle)
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Right (Deadline args) -> updateDeadline model args
@@ -479,7 +485,7 @@ renderTasks model =
       modelError (Just e) = colorize errorColor ("ERROR: " ++ e)
 
       sortedTasks :: [Task]
-      sortedTasks = sortOn timestamp model.tasks
+      sortedTasks = sortBy (comparing topic <> comparing timestamp) model.tasks
    in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
 
 renderTaskLine :: Integer -> Integer -> Task -> String
@@ -487,6 +493,8 @@ renderTaskLine modelTime checkpointTime t =
   printf "%3d" t.taskID
     ++ ". "
     ++ colorize (stateColor t.state) (renderTaskState t.state)
+    ++ " "
+    ++ colorize prioColor t.topic
     ++ " "
     ++ renderCheckpointInfo t.timestamp checkpointTime
     ++ (colorizePrio . colorizeTags . colorizeIP . fixLink) t.title
