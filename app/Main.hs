@@ -4,9 +4,10 @@ module Main (main) where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Char (isNumber, isSpace)
-import Data.List (intercalate, isInfixOf, isPrefixOf, sort)
+import Data.List (find, intercalate, isInfixOf, isPrefixOf, sort)
 import Data.List.Split (splitOn)
 import Data.Map qualified as Map
+import Data.Set qualified as Set
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
 import System.Console.ANSI
@@ -98,7 +99,8 @@ data Task = Task
   { title :: String,
     state :: TaskState,
     timestamp :: Integer,
-    deadline :: Maybe Integer
+    deadline :: Maybe Integer,
+    taskID :: Integer
   }
   deriving (Show, Read, Eq)
 
@@ -163,7 +165,8 @@ handleLine line model =
             { title = newTitle,
               state = newState,
               timestamp = model.time,
-              deadline = newDeadline
+              deadline = newDeadline,
+              taskID = generateTaskId model.tasks 1000
             }
         newTitle = unwords $ filter (not . isPrefixOf "@") (words taskTitle)
         newDeadline = calculateDeadline taskTitle model.time
@@ -175,6 +178,15 @@ handleLine line model =
     Left e -> model {_error = Just e}
   where
     command = commandFromInput line
+
+generateTaskId :: [Task] -> Integer -> Integer
+generateTaskId usedIds maxId =
+  let usedSet = Set.fromList (map taskID usedIds)
+      potentialIds = [1 ..]
+      firstAvailable = find (\n -> n > maxId || not (Set.member n usedSet)) potentialIds
+   in case firstAvailable of
+        Just n | n <= maxId -> n
+        _ -> 1111
 
 updateBuildNumberStr :: Model -> String -> Model
 updateBuildNumberStr model args =
@@ -475,7 +487,9 @@ renderTasks model =
 renderIndexedTask :: Integer -> Integer -> (Int, Task) -> String
 renderIndexedTask modelTime checkpointTime (i, t) =
   printf "%3d" i
-    ++ ". "
+    ++ ". ["
+    ++ show t.taskID
+    ++ "] "
     ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ " "
     ++ renderCheckpointInfo t.timestamp checkpointTime
