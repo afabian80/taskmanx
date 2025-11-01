@@ -380,9 +380,12 @@ deleteTaskByIndex model index =
 
 lookupTaskAtIndex :: [Task] -> Integer -> Maybe Task
 lookupTaskAtIndex taskList index =
-  if null matches then Nothing else Just $ head matches
+  if null matches then Nothing else safeHead matches
   where
     matches = take 1 $ filter (\t -> t.taskID == index) taskList
+    safeHead :: [Task] -> Maybe Task
+    safeHead [] = Nothing
+    safeHead (x : _) = Just x
 
 deleteTaskByTitle :: Model -> String -> Model
 deleteTaskByTitle model taskTitle =
