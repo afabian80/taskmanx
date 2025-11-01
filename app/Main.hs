@@ -130,6 +130,7 @@ data Command
   | SetTaskState TaskState String
   | Deadline String
   | SetNumber String
+  | SetTopic String
   deriving (Show)
 
 update :: Msg -> Model -> Model
@@ -168,7 +169,7 @@ handleLine line model =
               timestamp = model.time,
               deadline = newDeadline,
               taskID = generateTaskId model.tasks 1000,
-              topic = if null newTopic then "   " else newTopic
+              topic = if null newTopic then defaultTopic else newTopic
             }
         filterWords = ["+", "@"]
         startsWihFilterWords w = any (\prefix -> isPrefixOf prefix w) filterWords
@@ -180,9 +181,47 @@ handleLine line model =
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Right (Deadline args) -> updateDeadline model args
     Right (SetNumber args) -> updateBuildNumberStr model args
+    Right (SetTopic args) -> setTopic model args
     Left e -> model {_error = Just e}
   where
     command = commandFromInput line
+
+setTopic :: Model -> String -> Model
+setTopic model args =
+  case mIndex of
+    Nothing -> model {_error = Just ("Invalid number: " ++ indexStr)}
+    Just index -> updateTopic model index newTopic
+  where
+    indexStr = concat (take 1 (words args))
+    mIndex = readMaybe indexStr :: Maybe Integer
+    newTopic = concat (take 1 (drop 1 (words args)))
+
+updateTopic :: Model -> Integer -> String -> Model
+updateTopic model index newTopic =
+  case mTask of
+    Nothing -> model {_error = Just ("No task with index " ++ show index)}
+    Just task -> model {tasks = setTaskTopic task}
+  where
+    mTask = lookupTaskAtIndex model.tasks index
+
+    setTaskTopic :: Task -> [Task]
+    setTaskTopic task =
+      map (setTopicOnMatch task) model.tasks
+
+    setTopicOnMatch :: Task -> Task -> Task
+    setTopicOnMatch theTask aTask =
+      if theTask.taskID == aTask.taskID
+        then
+          if null newTopic
+            then
+              aTask {topic = defaultTopic}
+            else
+              aTask {topic = newTopic}
+        else
+          aTask
+
+defaultTopic :: String
+defaultTopic = "   "
 
 generateTaskId :: [Task] -> Integer -> Integer
 generateTaskId usedIds maxId =
@@ -297,6 +336,7 @@ commandFromInput (InputLine line) =
       | command `elem` nextCommands -> makeSafeCommand (SetTaskState Next) args
       | command `elem` failedCommands -> makeSafeCommand (SetTaskState Failed) args
       | command `elem` numberCommands -> makeSafeCommand SetNumber args
+      | command `elem` topicCommands -> makeSafeCommand SetTopic args
       | otherwise -> Left ("Unknown command: " ++ command)
 
 makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
@@ -446,6 +486,9 @@ failedCommands = ["failed"]
 numberCommands :: [String]
 numberCommands = ["setbuildnumber", "sbn"]
 
+topicCommands :: [String]
+topicCommands = ["settopic", "topic"]
+
 allCommands :: [String]
 allCommands =
   concat
@@ -464,7 +507,8 @@ allCommands =
       checkpointCommands,
       cleanCommands,
       failedCommands,
-      numberCommands
+      numberCommands,
+      topicCommands
     ]
 
 sortedCommands :: [String]
