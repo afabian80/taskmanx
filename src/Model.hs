@@ -8,29 +8,9 @@ module Model
     renderTaskState,
     Msg (..),
     Command (..),
-    addCommands,
-    delCommands,
-    doneCommands,
-    todoCommands,
-    doingCommands,
-    cancelCommands,
-    suspendCommands,
-    deadlineCommands,
-    waitCommands,
-    buildCommands,
-    nextCommands,
-    quitCommands,
-    checkpointCommands,
-    cleanCommands,
-    failedCommands,
-    numberCommands,
-    topicCommands,
-    allCommands,
-    sortedCommands,
   )
 where
 
-import Data.List (sort)
 import Text.Printf
 
 data Model = Model
@@ -97,79 +77,3 @@ data Command
   | SetNumber String
   | SetTopic String
   deriving (Show)
-
-addCommands :: [String]
-addCommands = ["new", "add", "a"]
-
-delCommands :: [String]
-delCommands = ["delete", "remove", "d"]
-
-doneCommands :: [String]
-doneCommands = ["done"]
-
-todoCommands :: [String]
-todoCommands = ["todo"]
-
-doingCommands :: [String]
-doingCommands = ["doing", "now", "start"]
-
-cancelCommands :: [String]
-cancelCommands = ["cancel"]
-
-suspendCommands :: [String]
-suspendCommands = ["suspend"]
-
-deadlineCommands :: [String]
-deadlineCommands = ["deadline"]
-
-waitCommands :: [String]
-waitCommands = ["wait"]
-
-buildCommands :: [String]
-buildCommands = ["building"]
-
-nextCommands :: [String]
-nextCommands = ["next"]
-
-quitCommands :: [String]
-quitCommands = ["exit", "quit", "q"]
-
-checkpointCommands :: [String]
-checkpointCommands = ["checkpoint", "cp"]
-
-cleanCommands :: [String]
-cleanCommands = ["clean"]
-
-failedCommands :: [String]
-failedCommands = ["failed"]
-
-numberCommands :: [String]
-numberCommands = ["setbuildnumber", "sbn"]
-
-topicCommands :: [String]
-topicCommands = ["settopic", "topic"]
-
-allCommands :: [String]
-allCommands =
-  concat
-    [ addCommands,
-      delCommands,
-      doneCommands,
-      todoCommands,
-      doingCommands,
-      cancelCommands,
-      suspendCommands,
-      deadlineCommands,
-      waitCommands,
-      buildCommands,
-      nextCommands,
-      quitCommands,
-      checkpointCommands,
-      cleanCommands,
-      failedCommands,
-      numberCommands,
-      topicCommands
-    ]
-
-sortedCommands :: [String]
-sortedCommands = sort allCommands

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedRecordDot #-}
 
-module View (errorColor, prioColor, tagColor, ipColor, urlColor, timeoutColor, deadlineColor, colorize, stateColor, render) where
+module View (render) where
 
 import Data.List (intercalate, isPrefixOf, sortBy)
 import Data.List.Split (splitOn)
