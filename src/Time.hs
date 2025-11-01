@@ -3,15 +3,6 @@ module Time (renderTime, convertPosixToTimeStr) where
 import Data.Time (defaultTimeLocale, formatTime)
 import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime)
 
-secondsInDay :: Integer
-secondsInDay = 86400
-
-secondsInHour :: Integer
-secondsInHour = 3600
-
-secondsInMinute :: Integer
-secondsInMinute = 60
-
 toDHMS :: Integer -> (Integer, Integer, Integer, Integer)
 toDHMS totalSeconds =
   let days = totalSeconds `div` secondsInDay
@@ -23,6 +14,12 @@ toDHMS totalSeconds =
       minutes = remainingHour `div` secondsInMinute
 
       seconds = remainingHour `mod` secondsInMinute
+
+      secondsInDay = 86400
+
+      secondsInHour = 3600
+
+      secondsInMinute = 60
    in (days, hours, minutes, seconds)
 
 renderTime :: Integer -> Integer -> String
