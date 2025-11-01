@@ -170,7 +170,7 @@ handleLine line model =
               taskID = generateTaskId model.tasks 1000,
               topic = if null newTopic then "   " else newTopic
             }
-        filterWords = ["@", "="]
+        filterWords = ["+", "="]
         startsWihFilterWords w = any (\prefix -> isPrefixOf prefix w) filterWords
         newTitle = unwords $ filter (not . startsWihFilterWords) (words taskTitle)
         newDeadline = calculateDeadline taskTitle model.time
@@ -315,14 +315,14 @@ convertPosixToTimeStr ts =
     posixTime = posixSecondsToUTCTime (realToFrac (ts + zoneDiff) :: POSIXTime)
     zoneDiff = 3600
 
--- If the text contains "@number"" exactly once then return the number as minutes
+-- If the text contains "+number"" exactly once then return the number as minutes
 -- added to the second parameter in seconds
 calculateDeadline :: String -> Integer -> Maybe Integer
 calculateDeadline taskTitle startTimeSeconds = endTime
   where
     endTime = if duration == 0 then Nothing else Just (startTimeSeconds + 60 * duration)
 
-    atWords = filter (isPrefixOf "@") (words taskTitle)
+    atWords = filter (isPrefixOf "+") (words taskTitle)
 
     getDurationText [d] = Just d
     getDurationText _ = Nothing
