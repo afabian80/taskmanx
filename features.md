@@ -1,4 +1,4 @@
 # Planned features
 
 - show help
-- unitfy deadline handline in new and updatedeadline functions
+- unify deadline handling in new and update deadline functions
