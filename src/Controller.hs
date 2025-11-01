@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedRecordDot #-}
 
-module Controller (update, sortedCommands, quitCommands, checkpointCommands, cleanCommands) where
+module Controller (update, sortedCommands, quitCommands, checkpointCommands, cleanCommands, parseDeadlineToSeconds) where
 
 import Data.Char (isNumber)
 import Data.List (find, isInfixOf, isPrefixOf, sort)
@@ -155,40 +155,51 @@ updateBuildNumber model index buildNumber =
         wordsList = words t
         updatedWords = map (replaceBuildNumberInWord nn) wordsList
 
-updateDeadline :: Model -> String -> Model
-updateDeadline model args =
-  case mDeadline of
-    Nothing -> model {_error = Just ("invalid deadline: " ++ deadlineStr)}
-    Just dl -> case mTask of
-      Nothing -> model {_error = Just ("no task with id " ++ indexStr)}
-      Just task -> case mUnitMultiplier of
-        Nothing -> model {_error = Just ("invalid unit: " ++ deadlineUnitStr)}
-        Just multi -> updateModel model task dl multi
+parseDeadlineToSeconds :: String -> Either String Integer
+parseDeadlineToSeconds text =
+  case mUnitMultiplier of
+    Nothing -> Left ("Invalid time unit: " ++ deadlineUnitStr)
+    Just multiplier -> case mDeadline of
+      Nothing -> Left ("Invalid number: " ++ deadlineNumberStr)
+      Just n -> Right (n * multiplier)
   where
-    indexStr = concat $ take 1 (words args) -- the first word
-    deadlineStr = concat $ take 1 $ drop 1 $ words args -- the second word
-    deadlineNumberStr = takeWhile isNumber deadlineStr
-    deadlineUnitStr = dropWhile isNumber deadlineStr
-    mIndex = readMaybe indexStr :: Maybe Integer
+    deadlineNumberStr = takeWhile isNumber text
+    deadlineUnitStr = dropWhile isNumber text
     mDeadline = readMaybe deadlineNumberStr :: Maybe Integer
+
+    mUnitMultiplier :: Maybe Integer
     mUnitMultiplier = case deadlineUnitStr of
+      "s" -> Just 1
       "" -> Just 60
       "m" -> Just 60
       "h" -> Just (60 * 60)
       "d" -> Just (24 * 60 * 60)
       _ -> Nothing
+
+updateDeadline :: Model -> String -> Model
+updateDeadline model args =
+  case mTask of
+    Nothing -> model {_error = Just ("No task with index " ++ indexStr)}
+    Just task -> case deadlineSeconds of
+      Left e -> model {_error = Just e}
+      Right sec -> updateModel model task sec
+  where
+    indexStr = concat $ take 1 (words args) -- the first word
+    deadlineStr = concat $ take 1 $ drop 1 $ words args -- the second word
+    deadlineSeconds = parseDeadlineToSeconds deadlineStr
+    mIndex = readMaybe indexStr :: Maybe Integer
     mTask = case mIndex of
       Nothing -> Nothing
       Just index -> lookupTaskAtIndex model.tasks index
 
-    updateModel :: Model -> Task -> Integer -> Integer -> Model
-    updateModel theModel theTask d multi =
-      theModel {tasks = map (updateTask theModel theTask d multi) theModel.tasks}
+    updateModel :: Model -> Task -> Integer -> Model
+    updateModel theModel theTask sec =
+      theModel {tasks = map (updateTask theModel theTask sec) theModel.tasks}
 
-    updateTask :: Model -> Task -> Integer -> Integer -> Task -> Task
-    updateTask theModel theTask d multi aTask =
+    updateTask :: Model -> Task -> Integer -> Task -> Task
+    updateTask theModel theTask sec aTask =
       if theTask.title == aTask.title
-        then aTask {deadline = Just (theModel.time + d * multi), timestamp = model.time}
+        then aTask {deadline = Just (theModel.time + sec), timestamp = model.time}
         else aTask
 
 commandFromInput :: InputLine -> Either String Command
