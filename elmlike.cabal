@@ -25,7 +25,10 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Controller
+      Model
+      Time
+      View
   other-modules:
       Paths_elmlike
   autogen-modules:

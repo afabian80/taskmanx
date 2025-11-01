@@ -1,0 +1,45 @@
+module Time (renderTime, convertPosixToTimeStr) where
+
+import Data.Time (defaultTimeLocale, formatTime)
+import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime)
+
+secondsInDay :: Integer
+secondsInDay = 86400
+
+secondsInHour :: Integer
+secondsInHour = 3600
+
+secondsInMinute :: Integer
+secondsInMinute = 60
+
+toDHMS :: Integer -> (Integer, Integer, Integer, Integer)
+toDHMS totalSeconds =
+  let days = totalSeconds `div` secondsInDay
+      remainingDay = totalSeconds `mod` secondsInDay
+
+      hours = remainingDay `div` secondsInHour
+      remainingHour = remainingDay `mod` secondsInHour
+
+      minutes = remainingHour `div` secondsInMinute
+
+      seconds = remainingHour `mod` secondsInMinute
+   in (days, hours, minutes, seconds)
+
+renderTime :: Integer -> Integer -> String
+renderTime modelTime taskTime = showTimeRounded (d, h, m, s)
+  where
+    (d, h, m, s) = toDHMS (modelTime - taskTime)
+
+showTimeRounded :: (Integer, Integer, Integer, Integer) -> String
+showTimeRounded (0, 0, 0, s) = show s ++ "s"
+showTimeRounded (0, 0, m, _) = show m ++ "m"
+showTimeRounded (0, h, _, _) = show h ++ "h"
+showTimeRounded (d, _, _, _) = show d ++ "d"
+
+convertPosixToTimeStr :: Integer -> String
+convertPosixToTimeStr ts =
+  timeStr
+  where
+    timeStr = formatTime defaultTimeLocale "%a %H:%M" posixTime
+    posixTime = posixSecondsToUTCTime (realToFrac (ts + zoneDiff) :: POSIXTime)
+    zoneDiff = 3600
