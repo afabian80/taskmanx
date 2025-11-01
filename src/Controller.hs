@@ -34,23 +34,42 @@ handleLine :: InputLine -> Model -> Model
 handleLine line model =
   case command of
     Right (NewTask taskTitle) ->
-      model
-        { tasks = model.tasks ++ [newTask]
-        }
-      where
-        newTask =
-          Task
-            { title = newTitle,
-              state = newState,
-              timestamp = model.time,
-              deadline = newDeadline,
-              taskID = generateTaskId model.tasks 1000,
-              topic = if null newTopic then defaultTopic else newTopic
+      if null deadlineWords
+        then
+          model
+            { tasks =
+                model.tasks
+                  ++ [ Task
+                         { title = newTitle,
+                           state = newState,
+                           timestamp = model.time,
+                           deadline = Nothing,
+                           taskID = generateTaskId model.tasks 1000,
+                           topic = if null newTopic then defaultTopic else newTopic
+                         }
+                     ]
             }
+        else case parseDeadlineToSeconds deadlineWords of
+          Left e -> model {_error = Just e}
+          Right sec ->
+            model
+              { tasks =
+                  model.tasks
+                    ++ [ Task
+                           { title = newTitle,
+                             state = newState,
+                             timestamp = model.time,
+                             deadline = Just (model.time + sec),
+                             taskID = generateTaskId model.tasks 1000,
+                             topic = if null newTopic then defaultTopic else newTopic
+                           }
+                       ]
+              }
+      where
+        deadlineWords = drop 1 $ concat $ filter (isPrefixOf "+") (words taskTitle)
         filterWords = ["+", "@"]
         startsWihFilterWords w = any (\prefix -> isPrefixOf prefix w) filterWords
         newTitle = unwords $ filter (not . startsWihFilterWords) (words taskTitle)
-        newDeadline = calculateDeadline taskTitle model.time
         newState = if "/job/" `isInfixOf` newTitle then Building else Todo
         newTopic = unwords $ map (drop 1) $ filter (isPrefixOf "@") (words taskTitle)
     Right (DeleteTask task) -> deleteTask model task
@@ -233,30 +252,6 @@ makeSafeCommand taskConstructor args =
       Left "Not enough arguments!"
     else
       Right (taskConstructor (unwords args))
-
--- If the text contains "+number"" exactly once then return the number as minutes
--- added to the second parameter in seconds
-calculateDeadline :: String -> Integer -> Maybe Integer
-calculateDeadline taskTitle startTimeSeconds = endTime
-  where
-    endTime = if duration == 0 then Nothing else Just (startTimeSeconds + 60 * duration)
-
-    atWords = filter (isPrefixOf "+") (words taskTitle)
-
-    getDurationText [d] = Just d
-    getDurationText _ = Nothing
-
-    maybeDurationText = getDurationText atWords
-
-    durationText Nothing = "0"
-    durationText (Just text) = drop 1 text
-
-    durationInt = readMaybe (durationText maybeDurationText) :: Maybe Integer
-
-    getDurationInt Nothing = 0
-    getDurationInt (Just i) = i
-
-    duration = getDurationInt durationInt
 
 setTaskStateByIndexText :: Model -> String -> TaskState -> Model
 setTaskStateByIndexText model indexText newState =
