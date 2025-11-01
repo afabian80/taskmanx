@@ -399,10 +399,10 @@ deleteTaskByTitle model taskTitle =
     taskTitles = map title model.tasks
 
 addCommands :: [String]
-addCommands = ["new", "add"]
+addCommands = ["new", "add", "a"]
 
 delCommands :: [String]
-delCommands = ["delete", "remove"]
+delCommands = ["delete", "remove", "d"]
 
 doneCommands :: [String]
 doneCommands = ["done"]
@@ -411,7 +411,7 @@ todoCommands :: [String]
 todoCommands = ["todo"]
 
 doingCommands :: [String]
-doingCommands = ["doing", "now"]
+doingCommands = ["doing", "now", "start"]
 
 cancelCommands :: [String]
 cancelCommands = ["cancel"]
