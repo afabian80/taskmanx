@@ -170,12 +170,12 @@ handleLine line model =
               taskID = generateTaskId model.tasks 1000,
               topic = if null newTopic then "   " else newTopic
             }
-        filterWords = ["+", "="]
+        filterWords = ["+", "@"]
         startsWihFilterWords w = any (\prefix -> isPrefixOf prefix w) filterWords
         newTitle = unwords $ filter (not . startsWihFilterWords) (words taskTitle)
         newDeadline = calculateDeadline taskTitle model.time
         newState = if "/job/" `isInfixOf` newTitle then Building else Todo
-        newTopic = unwords $ map (drop 1) $ filter (isPrefixOf "=") (words taskTitle)
+        newTopic = unwords $ map (drop 1) $ filter (isPrefixOf "@") (words taskTitle)
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Right (Deadline args) -> updateDeadline model args
