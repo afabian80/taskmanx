@@ -540,10 +540,9 @@ renderTaskLine modelTime checkpointTime t =
   printf "%3d" t.taskID
     ++ ". "
     ++ colorize (stateColor t.state) (renderTaskState t.state)
-    ++ " "
-    ++ colorize prioColor t.topic
-    ++ " "
     ++ renderCheckpointInfo t.timestamp checkpointTime
+    ++ colorize prioColor (printf "%4s" t.topic)
+    ++ " "
     ++ (colorizePrio . colorizeTags . colorizeIP . fixLink) t.title
     ++ " ("
     ++ renderTime modelTime t.timestamp
@@ -597,7 +596,7 @@ renderDeadlineInfo maybeDeadline modelTime taskState =
 
 renderCheckpointInfo :: Integer -> Integer -> [Char]
 renderCheckpointInfo taskTime checkpointTime =
-  if taskTime > checkpointTime then "🟡 " else ""
+  if taskTime > checkpointTime then "🟡" else "  "
 
 stateColor :: TaskState -> ((Color, ColorIntensity), (Color, ColorIntensity))
 stateColor st = case st of
