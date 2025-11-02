@@ -65,25 +65,20 @@ main = do
 loadMaybeCheckpoint :: String -> Maybe Integer
 loadMaybeCheckpoint s = readMaybe s :: Maybe Integer
 
-getTaskTitles :: Model -> [String]
-getTaskTitles m = map title m.tasks
-
 loop :: Model -> IO ()
 loop model = do
   setCursorPosition 0 0
   clearScreen
   putStrLn $ render model
   let wordBreakChars = " \t\n\"\\'`@$><=;|&{("
-  let myCompletionFunc :: Model -> CompletionFunc IO
-      myCompletionFunc m = completeWordWithPrev Nothing wordBreakChars $ \prevWordR prefix -> do
+  let myCompletionFunc :: CompletionFunc IO
+      myCompletionFunc = completeWordWithPrev Nothing wordBreakChars $ \prevWordR prefix -> do
         let prevWord = reverse $ dropWhile isSpace prevWordR
         -- liftIO $ putStrLn $ "\nDEBUG: prevWord = \"" ++ prevWord ++ "\""
         -- liftIO $ putStrLn $ "DEBUG: prefix   = \"" ++ prefix ++ "\""
-        let taskTitles = getTaskTitles m
         let commands = allCommands
         let suggestions
               | prevWord == "" = commands
-              | prevWord == "delete" = taskTitles
               | otherwise = []
         let matchingStrings = filter (prefix `isPrefixOf`) suggestions
             matchingCompletions = map simpleCompletion matchingStrings
@@ -91,7 +86,7 @@ loop model = do
 
   let customSettings =
         Settings
-          { complete = myCompletionFunc model,
+          { complete = myCompletionFunc,
             historyFile = Just "history.txt",
             autoAddHistory = True
           }
