@@ -81,11 +81,12 @@ renderTasks model =
 
 renderTaskLine :: Integer -> Integer -> Task -> String
 renderTaskLine modelTime checkpointTime t =
-  printf "%3d" t.taskID
-    ++ ". "
+  " "
     ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ renderCheckpointInfo t.timestamp checkpointTime
     ++ colorize prioColor (printf "%4s" t.topic)
+    ++ " "
+    ++ printf "%2d." t.taskID
     ++ " "
     ++ (colorizePrio . colorizeTags . colorizeIP . fixLink) t.title
     ++ " ("
