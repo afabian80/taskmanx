@@ -2,7 +2,6 @@
 
 module Main (main) where
 
-import Control.Monad.IO.Class (liftIO)
 import Controller
 import Data.Char (isSpace)
 import Data.List (isPrefixOf)
@@ -16,7 +15,6 @@ import System.Console.ANSI
 import System.Console.Haskeline
   ( Completion,
     CompletionFunc,
-    InputT,
     Settings (..),
     completeWord,
     getInputLine,
@@ -51,18 +49,18 @@ modelFile :: FilePath
 modelFile = "model.txt"
 
 main :: IO ()
-main = runInputT mySettings $ do
-  exists <- liftIO $ doesFileExist modelFile
-  currentSeconds <- liftIO getCurrentSeconds
+main = do
+  exists <- doesFileExist modelFile
+  currentSeconds <- getCurrentSeconds
   if exists
     then do
-      content <- liftIO $ readFile modelFile
+      content <- readFile modelFile
       let contentLines = lines content
       let checkpointLines = concat $ take 1 contentLines
       let maybeCheckpointInteger = loadMaybeCheckpoint checkpointLines
       let loadedTasks = map (\line -> read line :: Task) (drop 1 contentLines)
       case maybeCheckpointInteger of
-        Nothing -> liftIO $ putStrLn "Error in checkpoint line!"
+        Nothing -> putStrLn "Error in checkpoint line!"
         Just cp ->
           loop
             Model
@@ -89,43 +87,40 @@ main = runInputT mySettings $ do
 loadMaybeCheckpoint :: String -> Maybe Integer
 loadMaybeCheckpoint s = readMaybe s :: Maybe Integer
 
-loop :: Model -> InputT IO ()
+loop :: Model -> IO ()
 loop model = do
-  liftIO $ setCursorPosition 0 0
-  liftIO clearScreen
-  liftIO $ putStrLn $ render model
-  liftIO $ putStrLn "Enter a command ('q' to quit): "
-  mLine <- getInputLine ">>> "
+  setCursorPosition 0 0
+  clearScreen
+  putStrLn $ render model
+  putStrLn "Enter a command ('q' to quit): "
+  mLine <- runInputT mySettings (getInputLine ">>> ")
   case mLine of
-    Nothing -> liftIO $ putStrLn "\nBye!"
-    Just line -> do
-      let cleanLineBegin = dropWhile isSpace line
-      let cleanLineAll = reverse $ dropWhile isSpace $ reverse cleanLineBegin
-      let msg = inputLineToMsg (InputLine cleanLineAll)
-      currentSeconds <- liftIO getCurrentSeconds
-      let newModel =
-            update
-              msg
-              model
-                { time = currentSeconds
-                }
-      let newCounter = currentSeconds `mod` 100
-      let backupName = "/tmp/model." ++ show newCounter ++ ".txt"
-      let modelString = unlines (show model.checkpoint : map show newModel.tasks)
-      liftIO $ writeFile modelFile modelString
-      if newModel.doNotBackup
-        then return ()
-        else liftIO $ writeFile backupName modelString
-      if not $ null newModel.trash
-        then
-          liftIO $ appendFile "trash.txt" (unlines newModel.trash)
-        else
-          return ()
-      if newModel.quit
-        then do
-          liftIO $ putStrLn "Bye!"
-        else do
-          loop newModel
+    Nothing -> putStrLn "\nBye!"
+    Just line ->
+      do
+        let cleanLineBegin = dropWhile isSpace line
+        let cleanLineAll = reverse $ dropWhile isSpace $ reverse cleanLineBegin
+        let msg = inputLineToMsg (InputLine cleanLineAll)
+        currentSeconds <- getCurrentSeconds
+        let newModel = update msg model {time = currentSeconds}
+        let newCounter = currentSeconds `mod` 100
+        let backupName = "/tmp/model." ++ show newCounter ++ ".txt"
+        let modelString = unlines (show model.checkpoint : map show newModel.tasks)
+        writeFile modelFile modelString
+        if newModel.doNotBackup
+          then return ()
+          else
+            writeFile backupName modelString
+        if not $ null newModel.trash
+          then
+            appendFile "trash.txt" (unlines newModel.trash)
+          else
+            return ()
+        if newModel.quit
+          then do
+            putStrLn "Bye!"
+          else do
+            loop newModel
 
 getCurrentSeconds :: IO Integer
 getCurrentSeconds = do floor . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> getCurrentTime
