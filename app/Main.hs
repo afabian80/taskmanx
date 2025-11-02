@@ -13,37 +13,14 @@ import System.Console.ANSI
     setCursorPosition,
   )
 import System.Console.Haskeline
-  ( Completion,
-    CompletionFunc,
-    Settings (..),
-    completeWord,
+  ( Settings (..),
     getInputLine,
     runInputT,
-    simpleCompletion,
   )
+import System.Console.Haskeline.Completion
 import System.Directory (doesFileExist)
 import Text.Read (readMaybe)
 import View (render)
-
-searchFunc :: String -> [Completion]
-searchFunc str =
-  map simpleCompletion $
-    filter (str `isPrefixOf`) sortedCommands
-
-myCompletionFunc :: (Monad m) => CompletionFunc m
-myCompletionFunc =
-  completeWord
-    Nothing -- No escape character
-    " \t" -- Space and tab are word break characters
-    (return . searchFunc)
-
-mySettings :: Settings IO
-mySettings =
-  Settings
-    { historyFile = Just "history.txt",
-      complete = myCompletionFunc,
-      autoAddHistory = True
-    }
 
 modelFile :: FilePath
 modelFile = "model.txt"
@@ -92,8 +69,22 @@ loop model = do
   setCursorPosition 0 0
   clearScreen
   putStrLn $ render model
+  let freshCompletions = ["one", "two", "three"]
+  let myCompletionFunc :: (Monad m) => CompletionFunc m
+      myCompletionFunc = completeWord Nothing [' '] $ \prefix ->
+        let matchingStrings = filter (prefix `isPrefixOf`) freshCompletions
+            matchingCompletions = map simpleCompletion matchingStrings
+         in return matchingCompletions
+
+  let customSettings =
+        Settings
+          { complete = myCompletionFunc,
+            historyFile = Just "history.txt",
+            autoAddHistory = True
+          }
+
   putStrLn "Enter a command ('q' to quit): "
-  mLine <- runInputT mySettings (getInputLine ">>> ")
+  mLine <- runInputT customSettings (getInputLine ">>> ")
   case mLine of
     Nothing -> putStrLn "\nBye!"
     Just line ->
