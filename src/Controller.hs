@@ -75,6 +75,7 @@ handleLine line model =
     Right (DeleteTask task) -> deleteTask model task
     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
     Right (Deadline args) -> updateDeadline model args
+    Right (Undeadline args) -> updateDeadline model (args ++ " 0")
     Right (SetNumber args) -> updateBuildNumberStr model args
     Right (SetTopic args) -> setTopic model args
     Left e -> model {_error = Just e}
@@ -218,8 +219,10 @@ updateDeadline model args =
     updateTask :: Model -> Task -> Integer -> Task -> Task
     updateTask theModel theTask sec aTask =
       if theTask.title == aTask.title
-        then aTask {deadline = Just (theModel.time + sec), timestamp = model.time}
+        then aTask {deadline = newDeadline, timestamp = model.time}
         else aTask
+      where
+        newDeadline = if sec == 0 then Nothing else Just (theModel.time + sec)
 
 commandFromInput :: InputLine -> Either String Command
 commandFromInput (InputLine line) =
@@ -237,6 +240,7 @@ commandFromInput (InputLine line) =
       | command `elem` cancelCommands -> makeSafeCommand (SetTaskState Cancelled) args
       | command `elem` suspendCommands -> makeSafeCommand (SetTaskState Suspended) args
       | command `elem` deadlineCommands -> makeSafeCommand Deadline args
+      | command `elem` undeadlineCommands -> makeSafeCommand Undeadline args
       | command `elem` waitCommands -> makeSafeCommand (SetTaskState Waiting) args
       | command `elem` buildCommands -> makeSafeCommand (SetTaskState Building) args
       | command `elem` nextCommands -> makeSafeCommand (SetTaskState Next) args
@@ -336,6 +340,9 @@ suspendCommands = ["suspend"]
 deadlineCommands :: [String]
 deadlineCommands = ["deadline"]
 
+undeadlineCommands :: [String]
+undeadlineCommands = ["undeadline"]
+
 waitCommands :: [String]
 waitCommands = ["wait"]
 
@@ -382,7 +389,8 @@ allCommands =
       cleanCommands,
       failedCommands,
       numberCommands,
-      topicCommands
+      topicCommands,
+      undeadlineCommands
     ]
 
 sortedCommands :: [String]

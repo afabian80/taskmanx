@@ -74,6 +74,7 @@ data Command
   | DeleteTask String
   | SetTaskState TaskState String
   | Deadline String
+  | Undeadline String
   | SetNumber String
   | SetTopic String
   deriving (Show)
