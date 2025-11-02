@@ -62,7 +62,7 @@ render :: Model -> String
 render model = renderCheckpointTime model ++ renderTasks model ++ renderDebugInfo model
 
 renderCheckpointTime :: Model -> String
-renderCheckpointTime model = "\t\tCheckpoint: " ++ convertPosixToTimeStr model.checkpoint ++ "\n"
+renderCheckpointTime model = "\t\tCheckpoint: " ++ convertPosixToTimeStr model.checkpoint model.time ++ "\n"
 
 renderDebugInfo :: Model -> String
 renderDebugInfo _ = ""
@@ -137,7 +137,7 @@ renderDeadlineInfo maybeDeadline modelTime taskState =
           then colorize timeoutColor "TIMED OUT!"
           else deadlineInfo deadlineTime
   where
-    deadlineInfo endTS = colorize deadlineColor ("[by " ++ convertPosixToTimeStr endTS ++ "]")
+    deadlineInfo endTS = colorize deadlineColor ("[by " ++ convertPosixToTimeStr endTS modelTime ++ "]")
 
 renderCheckpointInfo :: Integer -> Integer -> [Char]
 renderCheckpointInfo taskTime checkpointTime =

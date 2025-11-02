@@ -33,10 +33,15 @@ showTimeRounded (0, 0, m, _) = show m ++ "m"
 showTimeRounded (0, h, _, _) = show h ++ "h"
 showTimeRounded (d, _, _, _) = show d ++ "d"
 
-convertPosixToTimeStr :: Integer -> String
-convertPosixToTimeStr ts =
+convertPosixToTimeStr :: Integer -> Integer -> String
+convertPosixToTimeStr ts modelTime =
   timeStr
   where
-    timeStr = formatTime defaultTimeLocale "%a %H:%M" posixTime
+    timeStr =
+      if ts - modelTime > 3600 * 24 * 5 -- 5 days
+        then
+          formatTime defaultTimeLocale "%F" posixTime
+        else
+          formatTime defaultTimeLocale "%a %H:%M" posixTime
     posixTime = posixSecondsToUTCTime (realToFrac (ts + zoneDiff) :: POSIXTime)
     zoneDiff = 3600
