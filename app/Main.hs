@@ -2,6 +2,7 @@
 
 module Main (main) where
 
+import Control.Monad.IO.Class (liftIO)
 import Controller
 import Data.Char (isSpace)
 import Data.List (isPrefixOf)
@@ -64,21 +65,33 @@ main = do
 loadMaybeCheckpoint :: String -> Maybe Integer
 loadMaybeCheckpoint s = readMaybe s :: Maybe Integer
 
+getTaskTitles :: Model -> [String]
+getTaskTitles m = map title m.tasks
+
 loop :: Model -> IO ()
 loop model = do
   setCursorPosition 0 0
   clearScreen
   putStrLn $ render model
-  let freshCompletions = ["one", "two", "three"]
-  let myCompletionFunc :: (Monad m) => CompletionFunc m
-      myCompletionFunc = completeWord Nothing [' '] $ \prefix ->
-        let matchingStrings = filter (prefix `isPrefixOf`) freshCompletions
+  let wordBreakChars = " \t\n\"\\'`@$><=;|&{("
+  let myCompletionFunc :: Model -> CompletionFunc IO
+      myCompletionFunc m = completeWordWithPrev Nothing wordBreakChars $ \prevWordR prefix -> do
+        let prevWord = reverse $ dropWhile isSpace prevWordR
+        -- liftIO $ putStrLn $ "\nDEBUG: prevWord = \"" ++ prevWord ++ "\""
+        -- liftIO $ putStrLn $ "DEBUG: prefix   = \"" ++ prefix ++ "\""
+        let taskTitles = getTaskTitles m
+        let commands = allCommands
+        let suggestions
+              | prevWord == "" = commands
+              | prevWord == "delete" = taskTitles
+              | otherwise = []
+        let matchingStrings = filter (prefix `isPrefixOf`) suggestions
             matchingCompletions = map simpleCompletion matchingStrings
-         in return matchingCompletions
+        return matchingCompletions
 
   let customSettings =
         Settings
-          { complete = myCompletionFunc,
+          { complete = myCompletionFunc model,
             historyFile = Just "history.txt",
             autoAddHistory = True
           }

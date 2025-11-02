@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedRecordDot #-}
 
-module Controller (update, sortedCommands, quitCommands, checkpointCommands, cleanCommands, parseDeadlineToSeconds) where
+module Controller (update, sortedCommands, quitCommands, checkpointCommands, cleanCommands, parseDeadlineToSeconds, allCommands) where
 
 import Data.Char (isNumber)
 import Data.List (find, isInfixOf, isPrefixOf, sort)
