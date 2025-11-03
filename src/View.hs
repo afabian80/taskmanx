@@ -5,12 +5,11 @@ module View (render) where
 import Data.List (intercalate, isPrefixOf, sortBy)
 import Data.List.Split (splitOn)
 import Data.Ord (comparing)
+import Data.Word (Word8)
 import Model
 import System.Console.ANSI
-  ( Color (Black, Cyan, Green, Magenta, Red, White, Yellow),
-    ColorIntensity (..),
-    ConsoleLayer (Background, Foreground),
-    SGR (Reset, SetColor),
+  ( ConsoleLayer (Background, Foreground),
+    SGR (Reset, SetPaletteColor),
     hyperlinkCode,
     setSGRCode,
   )
@@ -18,45 +17,45 @@ import Text.Printf (printf)
 import Text.Regex (mkRegex, subRegex)
 import Time
 
-errorColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
-errorColor = ((Red, Dull), (White, Dull))
+errorColor :: (Word8, Word8)
+errorColor = (160, 255)
 
-prioColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
-prioColor = ((Magenta, Vivid), (Black, Dull))
+prioColor :: (Word8, Word8)
+prioColor = (171, 234)
 
-tagColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
-tagColor = ((Cyan, Vivid), (Black, Dull))
+tagColor :: (Word8, Word8)
+tagColor = (33, 234)
 
-ipColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
-ipColor = ((Yellow, Vivid), (Black, Dull))
+ipColor :: (Word8, Word8)
+ipColor = (226, 234)
 
-urlColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
-urlColor = ((Magenta, Vivid), (White, Vivid))
+urlColor :: (Word8, Word8)
+urlColor = (32, 255)
 
-timeoutColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
-timeoutColor = ((Red, Dull), (White, Vivid))
+timeoutColor :: (Word8, Word8)
+timeoutColor = (196, 255)
 
-deadlineColor :: ((Color, ColorIntensity), (Color, ColorIntensity))
-deadlineColor = ((Cyan, Vivid), (Black, Dull))
+deadlineColor :: (Word8, Word8)
+deadlineColor = (44, 232)
 
-colorize :: ((Color, ColorIntensity), (Color, ColorIntensity)) -> String -> String
-colorize ((bgColor, bgIntensity), (fgColor, fgIntensity)) text =
-  setSGRCode [SetColor Background bgIntensity bgColor]
-    ++ setSGRCode [SetColor Foreground fgIntensity fgColor]
+colorize :: (Word8, Word8) -> String -> String
+colorize (bgIndex, fgIndex) text =
+  setSGRCode [SetPaletteColor Background bgIndex]
+    ++ setSGRCode [SetPaletteColor Foreground fgIndex]
     ++ text
     ++ setSGRCode [Reset]
 
-stateColor :: TaskState -> ((Color, ColorIntensity), (Color, ColorIntensity))
+stateColor :: TaskState -> (Word8, Word8)
 stateColor st = case st of
-  Todo -> ((White, Vivid), (Black, Dull))
-  Doing -> ((Yellow, Vivid), (Black, Dull))
-  Done -> ((Green, Vivid), (Black, Dull))
-  Cancelled -> ((Magenta, Vivid), (White, Vivid))
-  Suspended -> ((Magenta, Vivid), (White, Vivid))
-  Waiting -> ((Cyan, Vivid), (Black, Dull))
-  Building -> ((Cyan, Dull), (Black, Dull))
-  Next -> ((Black, Dull), (White, Vivid))
-  Failed -> ((Red, Dull), (White, Vivid))
+  Todo -> (255, 232)
+  Doing -> (228, 232)
+  Done -> (76, 232)
+  Cancelled -> (161, 255)
+  Suspended -> (214, 232)
+  Waiting -> (44, 232)
+  Building -> (32, 255)
+  Next -> (236, 255)
+  Failed -> (196, 255)
 
 render :: Model -> String
 render model = renderCheckpointTime model ++ renderTasks model ++ renderDebugInfo model
