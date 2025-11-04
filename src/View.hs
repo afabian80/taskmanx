@@ -16,6 +16,11 @@ import System.Console.ANSI
 import Text.Printf (printf)
 import Text.Regex (mkRegex, subRegex)
 import Time
+import Data.Char (ord)
+
+import Data.Word (Word8)
+import Data.Char (ord)
+import Data.Bits (xor, shiftL, shiftR)
 
 errorColor :: (Word8, Word8)
 errorColor = (160, 255)
@@ -27,7 +32,7 @@ tagColor :: (Word8, Word8)
 tagColor = (33, 234)
 
 ipColor :: (Word8, Word8)
-ipColor = (226, 234)
+ipColor = (220, 234)
 
 urlColor :: (Word8, Word8)
 urlColor = (32, 255)
@@ -48,7 +53,7 @@ colorize (bgIndex, fgIndex) text =
 stateColor :: TaskState -> (Word8, Word8)
 stateColor st = case st of
   Todo -> (255, 232)
-  Doing -> (228, 232)
+  Doing -> (220, 232)
   Done -> (76, 232)
   Cancelled -> (161, 255)
   Suspended -> (214, 232)
@@ -80,10 +85,10 @@ renderTasks model =
 
 renderTaskLine :: Integer -> Integer -> Task -> String
 renderTaskLine modelTime checkpointTime t =
-  " "
+      colorize (255,196) (renderCheckpointInfo t.timestamp checkpointTime)
     ++ colorize (stateColor t.state) (renderTaskState t.state)
-    ++ renderCheckpointInfo t.timestamp checkpointTime
-    ++ colorize (stateColor t.state) (printf "%4s" t.topic)
+    ++ " "
+    ++ colorize (stringToWord8 t.topic, 232) (printf "%4s" t.topic)
     ++ " "
     ++ colorize (stateColor t.state) (printf "%2d." t.taskID)
     ++ " "
@@ -92,6 +97,7 @@ renderTaskLine modelTime checkpointTime t =
     ++ renderTime modelTime t.timestamp
     ++ ") "
     ++ renderDeadlineInfo t.deadline modelTime t.state
+
 
 colorizePrio :: String -> String
 colorizePrio t = newTitle
@@ -140,4 +146,22 @@ renderDeadlineInfo maybeDeadline modelTime taskState =
 
 renderCheckpointInfo :: Integer -> Integer -> [Char]
 renderCheckpointInfo taskTime checkpointTime =
-  if taskTime > checkpointTime then "█" else " "
+  if taskTime > checkpointTime then "▶️" else "  "
+
+
+-- A better hash: mix bits using XOR and shifts
+stringHash :: String -> Int
+stringHash = foldl mix 0
+  where
+    mix h c =
+      let x = ord c
+      in (h `xor` (x + (h `shiftL` 5) + (h `shiftR` 2)))
+
+-- Map hash to Word8 in [16, 255]
+stringToWord8 :: String -> Word8
+stringToWord8 s =
+    let n = stringHash s
+        range = 255 - 16 + 1  -- 240
+        mapped = 16 + (abs n `mod` range)
+    in fromIntegral mapped
+
