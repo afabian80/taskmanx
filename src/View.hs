@@ -104,13 +104,22 @@ renderTaskLine modelTime checkpointTime t =
     ++ colorize (stringToWord8 t.topic, 232) (printf "%4s" t.topic)
     ++ " "
     ++ colorize (stateColor t.state) (printf "%2d." t.taskID)
-    ++ " "
+    ++ newMarker
     ++ (colorizePrio . colorizeTags . colorizeIP . fixLink) t.title
     ++ " ("
-    ++ renderTime modelTime t.timestamp
+    ++ colorizedAgeData
     ++ ") "
     ++ renderDeadlineInfo t.deadline modelTime t.state
-
+    where
+      ageData = renderTime modelTime t.timestamp
+      colorizedAgeData =
+        if modelTime - t.timestamp  < 120
+          then colorize ipColor ageData
+          else ageData
+      newMarker =
+        if modelTime - t.timestamp  < 120
+          then colorize ipColor " "
+          else " "
 
 colorizePrio :: String -> String
 colorizePrio t = newTitle
