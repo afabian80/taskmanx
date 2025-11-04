@@ -68,7 +68,9 @@ renderCheckpointTime model = "\t\tCheckpoint: " ++ convertPosixToTimeStr model.c
     toggleReadyInfo = if model.hideReady then "    " ++ colorize (111, 232) "Showing only active tasks!" else ""
 
 renderDebugInfo :: Model -> String
-renderDebugInfo _ = ""
+renderDebugInfo _ = colorLetters
+  where
+    colorLetters = concat $ map (\(i, c) -> colorize c (printf "%3i" i)) $ zip [0 :: Int ..] colorList
 
 renderTasks :: Model -> String
 renderTasks model =
@@ -98,7 +100,7 @@ renderTaskLine modelTime checkpointTime t =
   colorize (255, 196) (renderCheckpointInfo t.timestamp checkpointTime)
     ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ " "
-    ++ colorize (stringToWord8 t.topic, 232) (printf "%4s" t.topic)
+    ++ colorize (stringToColor t.topic) (printf "%4s" t.topic)
     ++ " "
     ++ colorize (stateColor t.state) (printf "%2d." t.taskID)
     ++ newMarker
@@ -175,10 +177,20 @@ stringHash = foldl mix 0
       let x = ord c
        in (h `xor` (x + (h `shiftL` 5) + (h `shiftR` 2)))
 
--- Map hash to Word8 in [16, 255]
-stringToWord8 :: String -> Word8
-stringToWord8 s =
+stringToColor :: String -> (Word8, Word8)
+stringToColor s =
   let n = stringHash s
-      range = 255 - 16 + 1 -- 240
-      mapped = 16 + (abs n `mod` range)
-   in fromIntegral mapped
+      range = length colorList
+      mapped = (abs (n + 5) `mod` range)
+   in colorList !! mapped
+
+bgColorListLight :: [Word8]
+bgColorListLight =
+  [204, 214, 227, 190, 122, 111, 140, 213, 250, 231]
+
+bgColorListDark :: [Word8]
+bgColorListDark =
+  [167, 202, 214, 106, 37, 33, 98, 170, 240, 235]
+
+colorList :: [(Word8, Word8)]
+colorList = zip bgColorListLight (repeat 16) ++ zip bgColorListDark (repeat 231)
