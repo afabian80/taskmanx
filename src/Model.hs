@@ -20,7 +20,8 @@ data Model = Model
     time :: Integer,
     checkpoint :: Integer,
     doNotBackup :: Bool,
-    trash :: [String]
+    trash :: [String],
+    hideReady :: Bool
   }
   deriving (Show)
 
@@ -67,6 +68,7 @@ data Msg
   | Checkpoint
   | Clean
   | Command InputLine
+  | ToggleReady
   deriving (Show)
 
 data Command

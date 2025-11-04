@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedRecordDot #-}
 
-module Controller (update, sortedCommands, quitCommands, checkpointCommands, cleanCommands, parseDeadlineToSeconds, allCommands) where
+module Controller (update, sortedCommands, quitCommands, checkpointCommands, cleanCommands, toggleReadyCommands, parseDeadlineToSeconds, allCommands) where
 
 import Data.Char (isNumber)
 import Data.List (find, isInfixOf, isPrefixOf, sort)
@@ -17,6 +17,7 @@ update msg tempModel =
     Checkpoint -> model {checkpoint = model.time}
     Clean -> model {tasks = keep, trash = map title waste}
     Command line -> handleLine line model
+    ToggleReady -> model {hideReady = not model.hideReady}
   where
     model = tempModel {_error = Nothing, doNotBackup = False, trash = []}
     (keep, waste) = cleanUpTasks model
@@ -370,6 +371,9 @@ numberCommands = ["setbuildnumber", "sbn"]
 topicCommands :: [String]
 topicCommands = ["settopic", "topic"]
 
+toggleReadyCommands :: [String]
+toggleReadyCommands = ["toggle", "toggleReady", "t"]
+
 allCommands :: [String]
 allCommands =
   concat
@@ -390,7 +394,8 @@ allCommands =
       failedCommands,
       numberCommands,
       topicCommands,
-      undeadlineCommands
+      undeadlineCommands,
+      toggleReadyCommands
     ]
 
 sortedCommands :: [String]

@@ -66,7 +66,9 @@ render :: Model -> String
 render model = renderCheckpointTime model ++ renderTasks model ++ renderDebugInfo model
 
 renderCheckpointTime :: Model -> String
-renderCheckpointTime model = "\t\tCheckpoint: " ++ convertPosixToTimeStr model.checkpoint model.time ++ "\n"
+renderCheckpointTime model = "\t\tCheckpoint: " ++ convertPosixToTimeStr model.checkpoint model.time ++ toggleReadyInfo ++ "\n"
+  where
+    toggleReadyInfo = if model.hideReady then "    " ++ colorize (111, 232) "Showing only active tasks!" else ""
 
 renderDebugInfo :: Model -> String
 renderDebugInfo _ = ""
@@ -74,14 +76,25 @@ renderDebugInfo _ = ""
 renderTasks :: Model -> String
 renderTasks model =
   let taskLines :: [String]
-      taskLines = map (renderTaskLine model.time model.checkpoint) sortedTasks
+      taskLines = map (renderTaskLine model.time model.checkpoint) filteredTasks
 
       modelError Nothing = ""
       modelError (Just e) = colorize errorColor ("ERROR: " ++ e)
 
       sortedTasks :: [Task]
       sortedTasks = sortBy (comparing topic <> comparing timestamp) model.tasks
+
+      filteredTasks :: [Task]
+      filteredTasks = filter (filterReady model.hideReady) sortedTasks
    in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
+
+filterReady :: Bool -> Task -> Bool
+filterReady p t =
+  if p
+    then
+      if t.state `elem` [Done, Cancelled, Suspended, Todo, Failed] then False else True
+    else
+      True
 
 renderTaskLine :: Integer -> Integer -> Task -> String
 renderTaskLine modelTime checkpointTime t =

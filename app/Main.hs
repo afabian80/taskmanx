@@ -48,7 +48,8 @@ main = do
                 time = currentSeconds,
                 checkpoint = cp,
                 doNotBackup = False,
-                trash = []
+                trash = [],
+                hideReady = False
               }
     else do
       loop
@@ -59,7 +60,8 @@ main = do
             time = currentSeconds,
             checkpoint = currentSeconds,
             doNotBackup = False,
-            trash = []
+            trash = [],
+            hideReady = False
           }
 
 loadMaybeCheckpoint :: String -> Maybe Integer
@@ -130,4 +132,5 @@ inputLineToMsg (InputLine line)
   | line `elem` quitCommands = Quit
   | line `elem` checkpointCommands = Checkpoint
   | line `elem` cleanCommands = Clean
+  | line `elem` toggleReadyCommands = ToggleReady
   | otherwise = Command (InputLine line)
