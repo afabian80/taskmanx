@@ -20,25 +20,25 @@ import Text.Regex (mkRegex, subRegex)
 import Time
 
 errorColor :: (Word8, Word8)
-errorColor = (160, 255)
+errorColor = colorList !! 11
 
 prioColor :: (Word8, Word8)
-prioColor = (171, 234)
+prioColor = colorList !! 7
 
 tagColor :: (Word8, Word8)
-tagColor = (33, 234)
+tagColor = colorList !! 15
 
 ipColor :: (Word8, Word8)
-ipColor = (220, 234)
+ipColor = colorList !! 12
 
 urlColor :: (Word8, Word8)
-urlColor = (32, 255)
+urlColor = colorList !! 13
 
 timeoutColor :: (Word8, Word8)
-timeoutColor = (196, 255)
+timeoutColor = colorList !! 10
 
 deadlineColor :: (Word8, Word8)
-deadlineColor = (44, 232)
+deadlineColor = colorList !! 3
 
 colorize :: (Word8, Word8) -> String -> String
 colorize (bgIndex, fgIndex) text =
@@ -49,15 +49,15 @@ colorize (bgIndex, fgIndex) text =
 
 stateColor :: TaskState -> (Word8, Word8)
 stateColor st = case st of
-  Todo -> (255, 232)
-  Doing -> (220, 232)
-  Done -> (76, 232)
-  Cancelled -> (161, 255)
-  Suspended -> (214, 232)
-  Waiting -> (44, 232)
-  Building -> (32, 255)
-  Next -> (236, 255)
-  Failed -> (196, 255)
+  Todo -> colorList !! 9
+  Doing -> colorList !! 1
+  Done -> colorList !! 13
+  Cancelled -> colorList !! 17
+  Suspended -> colorList !! 6
+  Waiting -> colorList !! 5
+  Building -> colorList !! 15
+  Next -> colorList !! 19
+  Failed -> colorList !! 11
 
 render :: Model -> String
 render model = renderCheckpointTime model ++ renderTasks model ++ renderDebugInfo model
