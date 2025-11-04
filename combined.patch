@@ -1,0 +1,328 @@
+From 728e805870f1998ff504eb44cff57eef330ed443 Mon Sep 17 00:00:00 2001
+From: Akos Fabian <fabian.akos@gmail.com>
+Date: Tue, 4 Nov 2025 11:54:12 +0100
+Subject: [PATCH 1/4] visual fixes
+
+---
+ src/View.hs | 36 ++++++++++++++++++++++++++++++------
+ 1 file changed, 30 insertions(+), 6 deletions(-)
+
+diff --git a/src/View.hs b/src/View.hs
+index ca56d16..ab803c3 100644
+--- a/src/View.hs
++++ b/src/View.hs
+@@ -16,6 +16,11 @@ import System.Console.ANSI
+ import Text.Printf (printf)
+ import Text.Regex (mkRegex, subRegex)
+ import Time
++import Data.Char (ord)
++
++import Data.Word (Word8)
++import Data.Char (ord)
++import Data.Bits (xor, shiftL, shiftR)
+ 
+ errorColor :: (Word8, Word8)
+ errorColor = (160, 255)
+@@ -27,7 +32,7 @@ tagColor :: (Word8, Word8)
+ tagColor = (33, 234)
+ 
+ ipColor :: (Word8, Word8)
+-ipColor = (226, 234)
++ipColor = (220, 234)
+ 
+ urlColor :: (Word8, Word8)
+ urlColor = (32, 255)
+@@ -48,7 +53,7 @@ colorize (bgIndex, fgIndex) text =
+ stateColor :: TaskState -> (Word8, Word8)
+ stateColor st = case st of
+   Todo -> (255, 232)
+-  Doing -> (228, 232)
++  Doing -> (220, 232)
+   Done -> (76, 232)
+   Cancelled -> (161, 255)
+   Suspended -> (214, 232)
+@@ -80,10 +85,10 @@ renderTasks model =
+ 
+ renderTaskLine :: Integer -> Integer -> Task -> String
+ renderTaskLine modelTime checkpointTime t =
+-  " "
++      colorize (255,196) (renderCheckpointInfo t.timestamp checkpointTime)
+     ++ colorize (stateColor t.state) (renderTaskState t.state)
+-    ++ renderCheckpointInfo t.timestamp checkpointTime
+-    ++ colorize (stateColor t.state) (printf "%4s" t.topic)
++    ++ " "
++    ++ colorize (stringToWord8 t.topic, 232) (printf "%4s" t.topic)
+     ++ " "
+     ++ colorize (stateColor t.state) (printf "%2d." t.taskID)
+     ++ " "
+@@ -93,6 +98,7 @@ renderTaskLine modelTime checkpointTime t =
+     ++ ") "
+     ++ renderDeadlineInfo t.deadline modelTime t.state
+ 
++
+ colorizePrio :: String -> String
+ colorizePrio t = newTitle
+   where
+@@ -140,4 +146,22 @@ renderDeadlineInfo maybeDeadline modelTime taskState =
+ 
+ renderCheckpointInfo :: Integer -> Integer -> [Char]
+ renderCheckpointInfo taskTime checkpointTime =
+-  if taskTime > checkpointTime then "█" else " "
+\ No newline at end of file
++  if taskTime > checkpointTime then "▶️" else "  "
++
++
++-- A better hash: mix bits using XOR and shifts
++stringHash :: String -> Int
++stringHash = foldl mix 0
++  where
++    mix h c =
++      let x = ord c
++      in (h `xor` (x + (h `shiftL` 5) + (h `shiftR` 2)))
++
++-- Map hash to Word8 in [16, 255]
++stringToWord8 :: String -> Word8
++stringToWord8 s =
++    let n = stringHash s
++        range = 255 - 16 + 1  -- 240
++        mapped = 16 + (abs n `mod` range)
++    in fromIntegral mapped
++
+-- 
+2.43.5
+
+
+From d07a4fbf9c2a26f8b33e0d85158ed0d63c6de7dc Mon Sep 17 00:00:00 2001
+From: Akos Fabian <fabian.akos@gmail.com>
+Date: Tue, 4 Nov 2025 12:19:11 +0100
+Subject: [PATCH 2/4] toggle task hiding
+
+---
+ app/Main.hs       |  7 +++++--
+ src/Controller.hs | 11 ++++++++---
+ src/Model.hs      |  4 +++-
+ src/View.hs       | 17 +++++++++++++++--
+ 4 files changed, 31 insertions(+), 8 deletions(-)
+
+diff --git a/app/Main.hs b/app/Main.hs
+index 33eb0e1..c4a3b1e 100644
+--- a/app/Main.hs
++++ b/app/Main.hs
+@@ -48,7 +48,8 @@ main = do
+                 time = currentSeconds,
+                 checkpoint = cp,
+                 doNotBackup = False,
+-                trash = []
++                trash = [],
++                hideReady = False
+               }
+     else do
+       loop
+@@ -59,7 +60,8 @@ main = do
+             time = currentSeconds,
+             checkpoint = currentSeconds,
+             doNotBackup = False,
+-            trash = []
++            trash = [],
++            hideReady = False
+           }
+ 
+ loadMaybeCheckpoint :: String -> Maybe Integer
+@@ -130,4 +132,5 @@ inputLineToMsg (InputLine line)
+   | line `elem` quitCommands = Quit
+   | line `elem` checkpointCommands = Checkpoint
+   | line `elem` cleanCommands = Clean
++  | line `elem` toggleReadyCommands = ToggleReady
+   | otherwise = Command (InputLine line)
+diff --git a/src/Controller.hs b/src/Controller.hs
+index 90537cf..47cb148 100644
+--- a/src/Controller.hs
++++ b/src/Controller.hs
+@@ -1,6 +1,6 @@
+ {-# LANGUAGE OverloadedRecordDot #-}
+ 
+-module Controller (update, sortedCommands, quitCommands, checkpointCommands, cleanCommands, parseDeadlineToSeconds, allCommands) where
++module Controller (update, sortedCommands, quitCommands, checkpointCommands, cleanCommands, toggleReadyCommands, parseDeadlineToSeconds, allCommands) where
+ 
+ import Data.Char (isNumber)
+ import Data.List (find, isInfixOf, isPrefixOf, sort)
+@@ -17,6 +17,7 @@ update msg tempModel =
+     Checkpoint -> model {checkpoint = model.time}
+     Clean -> model {tasks = keep, trash = map title waste}
+     Command line -> handleLine line model
++    ToggleReady -> model {hideReady = not model.hideReady}
+   where
+     model = tempModel {_error = Nothing, doNotBackup = False, trash = []}
+     (keep, waste) = cleanUpTasks model
+@@ -370,6 +371,9 @@ numberCommands = ["setbuildnumber", "sbn"]
+ topicCommands :: [String]
+ topicCommands = ["settopic", "topic"]
+ 
++toggleReadyCommands :: [String]
++toggleReadyCommands = ["toggle", "toggleReady", "t"]
++
+ allCommands :: [String]
+ allCommands =
+   concat
+@@ -390,8 +394,9 @@ allCommands =
+       failedCommands,
+       numberCommands,
+       topicCommands,
+-      undeadlineCommands
++      undeadlineCommands,
++      toggleReadyCommands
+     ]
+ 
+ sortedCommands :: [String]
+-sortedCommands = sort allCommands
+\ No newline at end of file
++sortedCommands = sort allCommands
+diff --git a/src/Model.hs b/src/Model.hs
+index caf7d60..aa192a6 100644
+--- a/src/Model.hs
++++ b/src/Model.hs
+@@ -20,7 +20,8 @@ data Model = Model
+     time :: Integer,
+     checkpoint :: Integer,
+     doNotBackup :: Bool,
+-    trash :: [String]
++    trash :: [String],
++    hideReady :: Bool
+   }
+   deriving (Show)
+ 
+@@ -67,6 +68,7 @@ data Msg
+   | Checkpoint
+   | Clean
+   | Command InputLine
++  | ToggleReady
+   deriving (Show)
+ 
+ data Command
+diff --git a/src/View.hs b/src/View.hs
+index ab803c3..6d1f7cb 100644
+--- a/src/View.hs
++++ b/src/View.hs
+@@ -66,7 +66,9 @@ render :: Model -> String
+ render model = renderCheckpointTime model ++ renderTasks model ++ renderDebugInfo model
+ 
+ renderCheckpointTime :: Model -> String
+-renderCheckpointTime model = "\t\tCheckpoint: " ++ convertPosixToTimeStr model.checkpoint model.time ++ "\n"
++renderCheckpointTime model = "\t\tCheckpoint: " ++ convertPosixToTimeStr model.checkpoint model.time ++ toggleReadyInfo ++ "\n"
++  where
++    toggleReadyInfo = if model.hideReady then "    " ++ colorize (111, 232) "Showing only active tasks!" else ""
+ 
+ renderDebugInfo :: Model -> String
+ renderDebugInfo _ = ""
+@@ -74,15 +76,26 @@ renderDebugInfo _ = ""
+ renderTasks :: Model -> String
+ renderTasks model =
+   let taskLines :: [String]
+-      taskLines = map (renderTaskLine model.time model.checkpoint) sortedTasks
++      taskLines = map (renderTaskLine model.time model.checkpoint) filteredTasks
+ 
+       modelError Nothing = ""
+       modelError (Just e) = colorize errorColor ("ERROR: " ++ e)
+ 
+       sortedTasks :: [Task]
+       sortedTasks = sortBy (comparing topic <> comparing timestamp) model.tasks
++
++      filteredTasks :: [Task]
++      filteredTasks = filter (filterReady model.hideReady) sortedTasks
+    in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
+ 
++filterReady :: Bool -> Task -> Bool
++filterReady p t =
++  if p
++    then
++      if t.state `elem` [Done, Cancelled, Suspended, Todo, Failed] then False else True
++    else
++      True
++
+ renderTaskLine :: Integer -> Integer -> Task -> String
+ renderTaskLine modelTime checkpointTime t =
+       colorize (255,196) (renderCheckpointInfo t.timestamp checkpointTime)
+-- 
+2.43.5
+
+
+From b3f484c1f82b5145cfe261d4cff0c70fdc21191e Mon Sep 17 00:00:00 2001
+From: Akos Fabian <fabian.akos@gmail.com>
+Date: Tue, 4 Nov 2025 15:20:14 +0100
+Subject: [PATCH 3/4] marker for new tasks
+
+---
+ src/Time.hs |  2 +-
+ src/View.hs | 15 ++++++++++++---
+ 2 files changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/src/Time.hs b/src/Time.hs
+index 9f0ab50..ee9141d 100644
+--- a/src/Time.hs
++++ b/src/Time.hs
+@@ -44,4 +44,4 @@ convertPosixToTimeStr ts modelTime =
+         else
+           formatTime defaultTimeLocale "%a %H:%M" posixTime
+     posixTime = posixSecondsToUTCTime (realToFrac (ts + zoneDiff) :: POSIXTime)
+-    zoneDiff = 3600
+\ No newline at end of file
++    zoneDiff = 3600
+diff --git a/src/View.hs b/src/View.hs
+index 6d1f7cb..f1e5e42 100644
+--- a/src/View.hs
++++ b/src/View.hs
+@@ -104,13 +104,22 @@ renderTaskLine modelTime checkpointTime t =
+     ++ colorize (stringToWord8 t.topic, 232) (printf "%4s" t.topic)
+     ++ " "
+     ++ colorize (stateColor t.state) (printf "%2d." t.taskID)
+-    ++ " "
++    ++ newMarker
+     ++ (colorizePrio . colorizeTags . colorizeIP . fixLink) t.title
+     ++ " ("
+-    ++ renderTime modelTime t.timestamp
++    ++ colorizedAgeData
+     ++ ") "
+     ++ renderDeadlineInfo t.deadline modelTime t.state
+-
++    where
++      ageData = renderTime modelTime t.timestamp
++      colorizedAgeData =
++        if modelTime - t.timestamp  < 120
++          then colorize ipColor ageData
++          else ageData
++      newMarker =
++        if modelTime - t.timestamp  < 120
++          then colorize ipColor " "
++          else " "
+ 
+ colorizePrio :: String -> String
+ colorizePrio t = newTitle
+-- 
+2.43.5
+
+
+From bbf3ffa2c5624d53f8a9c754f19927962432af5c Mon Sep 17 00:00:00 2001
+From: Akos Fabian <fabian.akos@gmail.com>
+Date: Tue, 4 Nov 2025 15:27:26 +0100
+Subject: [PATCH 4/4] add in Doing mode if in hiding mode
+
+---
+ src/Controller.hs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/Controller.hs b/src/Controller.hs
+index 47cb148..b15b851 100644
+--- a/src/Controller.hs
++++ b/src/Controller.hs
+@@ -71,7 +71,7 @@ handleLine line model =
+         filterWords = ["+", "@"]
+         startsWihFilterWords w = any (\prefix -> isPrefixOf prefix w) filterWords
+         newTitle = unwords $ filter (not . startsWihFilterWords) (words taskTitle)
+-        newState = if "/job/" `isInfixOf` newTitle then Building else Todo
++        newState = if "/job/" `isInfixOf` newTitle then Building else if model.hideReady then Doing else Todo
+         newTopic = unwords $ map (drop 1) $ filter (isPrefixOf "@") (words taskTitle)
+     Right (DeleteTask task) -> deleteTask model task
+     Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState
+-- 
+2.43.5
+

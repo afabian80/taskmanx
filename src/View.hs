@@ -2,6 +2,8 @@
 
 module View (render) where
 
+import Data.Bits (shiftL, shiftR, xor)
+import Data.Char (ord)
 import Data.List (intercalate, isPrefixOf, sortBy)
 import Data.List.Split (splitOn)
 import Data.Ord (comparing)
@@ -16,11 +18,6 @@ import System.Console.ANSI
 import Text.Printf (printf)
 import Text.Regex (mkRegex, subRegex)
 import Time
-import Data.Char (ord)
-
-import Data.Word (Word8)
-import Data.Char (ord)
-import Data.Bits (xor, shiftL, shiftR)
 
 errorColor :: (Word8, Word8)
 errorColor = (160, 255)
@@ -98,7 +95,7 @@ filterReady p t =
 
 renderTaskLine :: Integer -> Integer -> Task -> String
 renderTaskLine modelTime checkpointTime t =
-      colorize (255,196) (renderCheckpointInfo t.timestamp checkpointTime)
+  colorize (255, 196) (renderCheckpointInfo t.timestamp checkpointTime)
     ++ colorize (stateColor t.state) (renderTaskState t.state)
     ++ " "
     ++ colorize (stringToWord8 t.topic, 232) (printf "%4s" t.topic)
@@ -110,16 +107,16 @@ renderTaskLine modelTime checkpointTime t =
     ++ colorizedAgeData
     ++ ") "
     ++ renderDeadlineInfo t.deadline modelTime t.state
-    where
-      ageData = renderTime modelTime t.timestamp
-      colorizedAgeData =
-        if modelTime - t.timestamp  < 120
-          then colorize ipColor ageData
-          else ageData
-      newMarker =
-        if modelTime - t.timestamp  < 120
-          then colorize ipColor " "
-          else " "
+  where
+    ageData = renderTime modelTime t.timestamp
+    colorizedAgeData =
+      if modelTime - t.timestamp < 120
+        then colorize ipColor ageData
+        else ageData
+    newMarker =
+      if modelTime - t.timestamp < 120
+        then colorize ipColor " "
+        else " "
 
 colorizePrio :: String -> String
 colorizePrio t = newTitle
@@ -170,20 +167,18 @@ renderCheckpointInfo :: Integer -> Integer -> [Char]
 renderCheckpointInfo taskTime checkpointTime =
   if taskTime > checkpointTime then "▶️" else "  "
 
-
 -- A better hash: mix bits using XOR and shifts
 stringHash :: String -> Int
 stringHash = foldl mix 0
   where
     mix h c =
       let x = ord c
-      in (h `xor` (x + (h `shiftL` 5) + (h `shiftR` 2)))
+       in (h `xor` (x + (h `shiftL` 5) + (h `shiftR` 2)))
 
 -- Map hash to Word8 in [16, 255]
 stringToWord8 :: String -> Word8
 stringToWord8 s =
-    let n = stringHash s
-        range = 255 - 16 + 1  -- 240
-        mapped = 16 + (abs n `mod` range)
-    in fromIntegral mapped
-
+  let n = stringHash s
+      range = 255 - 16 + 1 -- 240
+      mapped = 16 + (abs n `mod` range)
+   in fromIntegral mapped

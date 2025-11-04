@@ -2,7 +2,6 @@
 
 module Main (main) where
 
-import Control.Monad.IO.Class (liftIO)
 import Controller
 import Data.Char (isSpace)
 import Data.List (isPrefixOf)
