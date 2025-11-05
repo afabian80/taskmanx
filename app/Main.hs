@@ -71,17 +71,10 @@ loop model = do
   setCursorPosition 0 0
   clearScreen
   putStrLn $ render model
-  let wordBreakChars = " \t\n\"\\'`@$><=;|&{("
   let myCompletionFunc :: CompletionFunc IO
-      myCompletionFunc = completeWordWithPrev Nothing wordBreakChars $ \prevWordR prefix -> do
-        let prevWord = reverse $ dropWhile isSpace prevWordR
-        -- liftIO $ putStrLn $ "\nDEBUG: prevWord = \"" ++ prevWord ++ "\""
-        -- liftIO $ putStrLn $ "DEBUG: prefix   = \"" ++ prefix ++ "\""
+      myCompletionFunc = completeWord Nothing " " $ \prefix -> do
         let commands = allCommands
-        let suggestions
-              | prevWord == "" = commands
-              | otherwise = []
-        let matchingStrings = filter (prefix `isPrefixOf`) suggestions
+        let matchingStrings = filter (prefix `isPrefixOf`) commands
             matchingCompletions = map simpleCompletion matchingStrings
         return matchingCompletions
 
