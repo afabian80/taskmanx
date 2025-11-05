@@ -68,9 +68,10 @@ renderCheckpointTime model = "\t\tCheckpoint: " ++ convertPosixToTimeStr model.c
     toggleReadyInfo = if model.hideReady then "    " ++ colorize (111, 232) "Showing only active tasks!" else ""
 
 renderDebugInfo :: Model -> String
-renderDebugInfo _ = colorLetters
-  where
-    colorLetters = concat $ map (\(i, c) -> colorize c (printf "%3i" i)) $ zip [0 :: Int ..] colorList
+renderDebugInfo _ = ""
+
+-- where
+--   colorLetters = concat $ map (\(i, c) -> colorize c (printf "%3i" i)) $ zip [0 :: Int ..] colorList
 
 renderTasks :: Model -> String
 renderTasks model =
