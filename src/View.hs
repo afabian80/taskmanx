@@ -70,7 +70,7 @@ renderTaskLine :: Integer -> Integer -> Task -> String
 renderTaskLine modelTime checkpointTime t =
     newTaskMarker
         ++ case t.state of
-            Todo -> renderDecoratedTaskLine []
+            Todo -> renderDecoratedTaskLine todoColor
             Done -> stroked $ renderDecoratedTaskLine finishedColor
             Cancelled -> stroked $ renderDecoratedTaskLine finishedColor
             Suspended -> stroked $ renderDecoratedTaskLine finishedColor
@@ -80,6 +80,7 @@ renderTaskLine modelTime checkpointTime t =
             Waiting -> renderDecoratedTaskLine waitingColor
             Next -> renderDecoratedTaskLine nextColor
   where
+    todoColor = [48, 5, 252]
     finishedColor = [38, 5, 248]
     failedColor = [38, 5, 214]
     doingColor = [48, 5, 214]
