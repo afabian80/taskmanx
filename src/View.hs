@@ -64,7 +64,7 @@ renderTasks model =
 
 filterReady :: Bool -> Task -> Bool
 filterReady p t =
-    not (p && (t.state `elem` [Done, Cancelled, Suspended, Todo, Failed]))
+    not (p && (t.state `elem` [Done, Cancelled, Suspended, Todo, Failed, Next]))
 
 renderTaskLine :: Integer -> Integer -> Task -> String
 renderTaskLine modelTime checkpointTime t =
