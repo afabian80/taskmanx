@@ -100,7 +100,7 @@ renderTaskLine modelTime checkpointTime hu t =
             then " " ++ decorate [38, 5, 112] "■" ++ " "
             else "   "
     ageData :: String
-    ageData = printf "(%s)" (renderTime modelTime t.timestamp)
+    ageData = printf "%s" (renderTime modelTime t.timestamp)
     urlMaskedTitle =
         if hu
             then unwords (map replaceUrl (words t.title))
