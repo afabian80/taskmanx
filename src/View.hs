@@ -89,7 +89,7 @@ renderTaskLine modelTime checkpointTime hu t =
     nextColor = [48, 5, 236, 38, 5, 231]
     renderDecoratedTaskLine :: [Word8] -> String
     renderDecoratedTaskLine codes = decorate codes line
-    line = printf "%2d.%s%s %5s @%-8s %s" t.taskID newMarker limitedTitle ageData t.topic deadlineInfo
+    line = printf "%2d.%s%s %5s %-8s %s" t.taskID newMarker limitedTitle ageData t.topic deadlineInfo
     deadlineInfo = renderDeadlineInfo t.deadline modelTime t.state
     newMarker =
         if modelTime - t.timestamp < 5
