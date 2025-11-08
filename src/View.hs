@@ -2,7 +2,7 @@
 
 module View (render) where
 
-import Data.List (intercalate, sortBy)
+import Data.List (groupBy, intercalate, sortBy)
 import Data.Ord (comparing)
 import Data.Word (Word8)
 import Model
@@ -37,8 +37,10 @@ renderDebugInfo _ = ""
 
 renderTasks :: Model -> String
 renderTasks model =
-    let taskLines :: [String]
-        taskLines = map (renderTaskLine model.time model.checkpoint) filteredTasks
+    let taskLines :: String
+        taskLines =
+            intercalate "\n" $
+                map (intercalate "\n" . renderTopic) groupedTasks
 
         modelError Nothing = ""
         modelError (Just e) = decorate [48, 5, 160, 38, 5, 231] ("ERROR: " ++ e)
@@ -48,7 +50,17 @@ renderTasks model =
 
         filteredTasks :: [Task]
         filteredTasks = filter (filterReady model.hideReady) sortedTasks
-     in "Tasks:\n======\n" ++ unlines taskLines ++ "\n" ++ modelError model._error
+
+        sameTopic :: Task -> Task -> Bool
+        sameTopic t1 t2 = t1.topic == t2.topic
+
+        groupedTasks :: [[Task]]
+        groupedTasks = groupBy sameTopic filteredTasks
+
+        renderTopic :: [Task] -> [String]
+        renderTopic = map (renderTaskLine model.time model.checkpoint)
+     in -- I could add empty lines between different topic, but it does not look good.
+        "Tasks:\n======\n" ++ taskLines ++ "\n" ++ modelError model._error
 
 filterReady :: Bool -> Task -> Bool
 filterReady p t =
