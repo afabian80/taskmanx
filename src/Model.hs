@@ -20,6 +20,7 @@ data Model = Model
     , doNotBackup :: Bool
     , trash :: [String]
     , hideReady :: Bool
+    , hideUrl :: Bool
     }
     deriving (Show)
 
@@ -67,6 +68,7 @@ data Msg
     | Clean
     | Command InputLine
     | ToggleReady
+    | ToggleUrl
     deriving (Show)
 
 data Command

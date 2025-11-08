@@ -50,6 +50,7 @@ main = do
                             , doNotBackup = False
                             , trash = []
                             , hideReady = False
+                            , hideUrl = True
                             }
         else do
             loop
@@ -62,6 +63,7 @@ main = do
                     , doNotBackup = False
                     , trash = []
                     , hideReady = False
+                    , hideUrl = True
                     }
 
 loadMaybeCheckpoint :: String -> Maybe Integer
@@ -122,4 +124,5 @@ inputLineToMsg (InputLine line)
     | line `elem` checkpointCommands = Checkpoint
     | line `elem` cleanCommands = Clean
     | line `elem` toggleReadyCommands = ToggleReady
+    | line `elem` toggleUrlCommands = ToggleUrl
     | otherwise = Command (InputLine line)

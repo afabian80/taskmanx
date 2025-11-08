@@ -2,7 +2,7 @@
 
 module View (render) where
 
-import Data.List (groupBy, intercalate, sortBy)
+import Data.List (groupBy, intercalate, isPrefixOf, sortBy)
 import Data.Ord (comparing)
 import Data.Word (Word8)
 import Model
@@ -58,7 +58,7 @@ renderTasks model =
         groupedTasks = groupBy sameTopic filteredTasks
 
         renderTopic :: [Task] -> [String]
-        renderTopic = map (renderTaskLine model.time model.checkpoint)
+        renderTopic = map (renderTaskLine model.time model.checkpoint model.hideUrl)
      in -- I could add empty lines between different topic, but it does not look good.
         "Tasks:\n======\n" ++ taskLines ++ "\n" ++ modelError model._error
 
@@ -66,8 +66,8 @@ filterReady :: Bool -> Task -> Bool
 filterReady p t =
     not (p && (t.state `elem` [Done, Cancelled, Suspended, Todo, Failed, Next]))
 
-renderTaskLine :: Integer -> Integer -> Task -> String
-renderTaskLine modelTime checkpointTime t =
+renderTaskLine :: Integer -> Integer -> Bool -> Task -> String
+renderTaskLine modelTime checkpointTime hu t =
     newTaskMarker
         ++ case t.state of
             Todo -> renderDecoratedTaskLine todoColor
@@ -89,7 +89,7 @@ renderTaskLine modelTime checkpointTime t =
     nextColor = [48, 5, 236, 38, 5, 231]
     renderDecoratedTaskLine :: [Word8] -> String
     renderDecoratedTaskLine codes = decorate codes line
-    line = printf "%2d.%s%s (%s) @%s %s" t.taskID newMarker t.title ageData t.topic deadlineInfo
+    line = printf "%2d.%s%s (%s) @%s %s" t.taskID newMarker urlMaskedTitle ageData t.topic deadlineInfo
     deadlineInfo = renderDeadlineInfo t.deadline modelTime t.state
     newMarker =
         if modelTime - t.timestamp < 120
@@ -100,6 +100,12 @@ renderTaskLine modelTime checkpointTime t =
             then " " ++ decorate [38, 5, 112] "■" ++ " "
             else "   "
     ageData = renderTime modelTime t.timestamp
+    urlMaskedTitle =
+        if hu
+            then unwords (map replaceUrl (words t.title))
+            else t.title
+    replaceUrl :: String -> String
+    replaceUrl w = if "http" `isPrefixOf` w then "...URL..." else w
 
 renderDeadlineInfo :: Maybe Integer -> Integer -> TaskState -> String
 renderDeadlineInfo maybeDeadline modelTime taskState =
