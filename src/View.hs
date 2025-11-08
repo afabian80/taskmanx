@@ -89,21 +89,24 @@ renderTaskLine modelTime checkpointTime hu t =
     nextColor = [48, 5, 236, 38, 5, 231]
     renderDecoratedTaskLine :: [Word8] -> String
     renderDecoratedTaskLine codes = decorate codes line
-    line = printf "%2d.%s%s (%s) @%s %s" t.taskID newMarker urlMaskedTitle ageData t.topic deadlineInfo
+    line = printf "%2d.%s%s %5s @%-8s %s" t.taskID newMarker limitedTitle ageData t.topic deadlineInfo
     deadlineInfo = renderDeadlineInfo t.deadline modelTime t.state
     newMarker =
-        if modelTime - t.timestamp < 120
+        if modelTime - t.timestamp < 5
             then " ■ "
             else " "
     newTaskMarker =
         if t.timestamp > checkpointTime
             then " " ++ decorate [38, 5, 112] "■" ++ " "
             else "   "
-    ageData = renderTime modelTime t.timestamp
+    ageData :: String
+    ageData = printf "(%s)" (renderTime modelTime t.timestamp)
     urlMaskedTitle =
         if hu
             then unwords (map replaceUrl (words t.title))
             else t.title
+    limitedTitle :: String
+    limitedTitle = printf "%-40s" (take 40 urlMaskedTitle)
     replaceUrl :: String -> String
     replaceUrl w = if "http" `isPrefixOf` w then "...URL..." else w
 
