@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE TupleSections #-}
 
 module View (render) where
 
@@ -90,11 +91,7 @@ renderTasks model =
 
 filterReady :: Bool -> Task -> Bool
 filterReady p t =
-    if p
-        then
-            if t.state `elem` [Done, Cancelled, Suspended, Todo, Failed] then False else True
-        else
-            True
+    not (p && (t.state `elem` [Done, Cancelled, Suspended, Todo, Failed]))
 
 renderTaskLine :: Integer -> Integer -> Task -> String
 renderTaskLine modelTime checkpointTime t =
@@ -166,7 +163,7 @@ renderDeadlineInfo maybeDeadline modelTime taskState =
   where
     deadlineInfo endTS = colorize deadlineColor ("[by " ++ convertPosixToTimeStr endTS modelTime ++ "]")
 
-renderCheckpointInfo :: Integer -> Integer -> [Char]
+renderCheckpointInfo :: Integer -> Integer -> String
 renderCheckpointInfo taskTime checkpointTime =
     if taskTime > checkpointTime then "▶️" else "  "
 
@@ -176,7 +173,7 @@ stringHash = foldl mix 0
   where
     mix h c =
         let x = ord c
-         in (h `xor` (x + (h `shiftL` 5) + (h `shiftR` 2)))
+         in (h `xor` (x + h `shiftL` 5 + h `shiftR` 2))
 
 stringToColor :: String -> (Word8, Word8)
 stringToColor s =
@@ -194,4 +191,4 @@ bgColorListDark =
     [167, 202, 214, 106, 37, 33, 98, 170, 240, 235]
 
 colorList :: [(Word8, Word8)]
-colorList = zip bgColorListLight (repeat 16) ++ zip bgColorListDark (repeat 231)
+colorList = map (,16) bgColorListLight ++ map (,231) bgColorListDark

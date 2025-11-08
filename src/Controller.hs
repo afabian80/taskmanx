@@ -69,9 +69,12 @@ handleLine line model =
           where
             deadlineWords = drop 1 $ concat $ filter (isPrefixOf "+") (words taskTitle)
             filterWords = ["+", "@"]
-            startsWihFilterWords w = any (\prefix -> isPrefixOf prefix w) filterWords
+            startsWihFilterWords w = any (`isPrefixOf` w) filterWords
             newTitle = unwords $ filter (not . startsWihFilterWords) (words taskTitle)
-            newState = if "/job/" `isInfixOf` newTitle then Building else if model.hideReady then Doing else Todo
+            newState
+                | "/job/" `isInfixOf` newTitle = Building
+                | model.hideReady = Doing
+                | otherwise = Todo
             newTopic = unwords $ map (drop 1) $ filter (isPrefixOf "@") (words taskTitle)
         Right (DeleteTask task) -> deleteTask model task
         Right (SetTaskState newState indexText) -> setTaskStateByIndexText model indexText newState

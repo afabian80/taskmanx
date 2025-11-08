@@ -2,6 +2,7 @@
 
 module Main (main) where
 
+import Control.Monad (unless)
 import Controller
 import Data.Char (isSpace)
 import Data.List (isPrefixOf)
@@ -104,11 +105,7 @@ loop model = do
                     then return ()
                     else
                         writeFile backupName modelString
-                if not $ null newModel.trash
-                    then
-                        appendFile "trash.txt" (unlines newModel.trash)
-                    else
-                        return ()
+                unless (null newModel.trash) $ appendFile "trash.txt" (unlines newModel.trash)
                 if newModel.quit
                     then do
                         putStrLn "Bye!"
