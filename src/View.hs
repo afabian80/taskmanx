@@ -71,15 +71,21 @@ renderTaskLine modelTime checkpointTime t =
     newTaskMarker
         ++ case t.state of
             Todo -> renderDecoratedTaskLine []
-            Done -> stroked $ renderDecoratedTaskLine [38, 5, 246]
-            Cancelled -> stroked $ renderDecoratedTaskLine [38, 5, 246]
-            Suspended -> stroked $ renderDecoratedTaskLine [38, 5, 246]
-            Failed -> stroked $ renderDecoratedTaskLine [38, 5, 196]
-            Doing -> renderDecoratedTaskLine [48, 5, 214]
-            Building -> renderDecoratedTaskLine [48, 5, 81]
-            Waiting -> renderDecoratedTaskLine [48, 5, 146]
-            Next -> renderDecoratedTaskLine [48, 5, 236, 38, 5, 231]
+            Done -> stroked $ renderDecoratedTaskLine finishedColor
+            Cancelled -> stroked $ renderDecoratedTaskLine finishedColor
+            Suspended -> stroked $ renderDecoratedTaskLine finishedColor
+            Failed -> stroked $ renderDecoratedTaskLine failedColor
+            Doing -> renderDecoratedTaskLine doingColor
+            Building -> renderDecoratedTaskLine buildingColor
+            Waiting -> renderDecoratedTaskLine waitingColor
+            Next -> renderDecoratedTaskLine nextColor
   where
+    finishedColor = [38, 5, 248]
+    failedColor = [38, 5, 214]
+    doingColor = [48, 5, 214]
+    buildingColor = [48, 5, 81]
+    waitingColor = [48, 5, 146]
+    nextColor = [48, 5, 236, 38, 5, 231]
     renderDecoratedTaskLine :: [Word8] -> String
     renderDecoratedTaskLine codes = decorate codes line
     line = printf "%2d.%s%s (%s) @%s %s" t.taskID newMarker t.title ageData t.topic deadlineInfo
