@@ -70,7 +70,7 @@ renderTaskLine modelTime checkpointTime t =
   where
     renderDecoratedTaskLine :: [Word8] -> String
     renderDecoratedTaskLine codes = decorate codes line
-    line = printf "%2d.%s%s (%s) %s @%s" t.taskID newMarker t.title ageData deadlineInfo t.topic
+    line = printf "%2d.%s%s (%s) @%s %s" t.taskID newMarker t.title ageData t.topic deadlineInfo
     deadlineInfo = renderDeadlineInfo t.deadline modelTime t.state
     newMarker =
         if modelTime - t.timestamp < 120
