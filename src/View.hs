@@ -93,8 +93,8 @@ renderTaskLine modelTime checkpointTime hu t =
     deadlineInfo = renderDeadlineInfo t.deadline modelTime t.state
     newMarker =
         if modelTime - t.timestamp < 5
-            then " ■ "
-            else " "
+            then "■ "
+            else "  "
     newTaskMarker =
         if t.timestamp > checkpointTime
             then " " ++ decorate [38, 5, 112] "■" ++ " "
