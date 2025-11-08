@@ -1,64 +1,28 @@
 {-# LANGUAGE OverloadedRecordDot #-}
-{-# LANGUAGE TupleSections #-}
 
 module View (render) where
 
-import Data.Bits (shiftL, shiftR, xor)
-import Data.Char (ord)
-import Data.List (intercalate, isPrefixOf, sortBy)
-import Data.List.Split (splitOn)
+import Data.List (intercalate, sortBy)
 import Data.Ord (comparing)
 import Data.Word (Word8)
 import Model
-import System.Console.ANSI (
-    ConsoleLayer (Background, Foreground),
-    SGR (Reset, SetPaletteColor),
-    hyperlinkCode,
-    setSGRCode,
- )
-import Text.Printf (printf)
-import Text.Regex (mkRegex, subRegex)
+import Text.Printf
 import Time
 
-errorColor :: (Word8, Word8)
-errorColor = colorList !! 11
-
-prioColor :: (Word8, Word8)
-prioColor = colorList !! 7
-
-tagColor :: (Word8, Word8)
-tagColor = colorList !! 15
-
-ipColor :: (Word8, Word8)
-ipColor = colorList !! 12
-
-urlColor :: (Word8, Word8)
-urlColor = colorList !! 13
-
-timeoutColor :: (Word8, Word8)
-timeoutColor = colorList !! 10
-
-deadlineColor :: (Word8, Word8)
-deadlineColor = colorList !! 3
-
 colorize :: (Word8, Word8) -> String -> String
-colorize (bgIndex, fgIndex) text =
-    setSGRCode [SetPaletteColor Background bgIndex]
-        ++ setSGRCode [SetPaletteColor Foreground fgIndex]
-        ++ text
-        ++ setSGRCode [Reset]
+colorize (bg, fg) = decorate [48, 5, bg, 38, 5, fg]
 
-stateColor :: TaskState -> (Word8, Word8)
-stateColor st = case st of
-    Todo -> colorList !! 9
-    Doing -> colorList !! 1
-    Done -> colorList !! 13
-    Cancelled -> colorList !! 17
-    Suspended -> colorList !! 6
-    Waiting -> colorList !! 5
-    Building -> colorList !! 15
-    Next -> colorList !! 19
-    Failed -> colorList !! 11
+decorate :: [Word8] -> String -> String
+decorate [] text = text
+decorate codes text =
+    starter ++ text ++ stopper
+  where
+    starter = "\ESC[" ++ cs ++ "m"
+    cs = intercalate ";" (map show codes)
+    stopper = "\ESC[0m"
+
+stroked :: String -> String
+stroked text = "\ESC[9m" ++ text ++ "\ESC[29m"
 
 render :: Model -> String
 render model = renderCheckpointTime model ++ renderTasks model ++ renderDebugInfo model
@@ -71,16 +35,13 @@ renderCheckpointTime model = "\t\tCheckpoint: " ++ convertPosixToTimeStr model.c
 renderDebugInfo :: Model -> String
 renderDebugInfo _ = ""
 
--- where
---   colorLetters = concat $ map (\(i, c) -> colorize c (printf "%3i" i)) $ zip [0 :: Int ..] colorList
-
 renderTasks :: Model -> String
 renderTasks model =
     let taskLines :: [String]
         taskLines = map (renderTaskLine model.time model.checkpoint) filteredTasks
 
         modelError Nothing = ""
-        modelError (Just e) = colorize errorColor ("ERROR: " ++ e)
+        modelError (Just e) = decorate [48, 5, 160, 38, 5, 231] ("ERROR: " ++ e)
 
         sortedTasks :: [Task]
         sortedTasks = sortBy (comparing topic <> comparing timestamp) model.tasks
@@ -95,59 +56,31 @@ filterReady p t =
 
 renderTaskLine :: Integer -> Integer -> Task -> String
 renderTaskLine modelTime checkpointTime t =
-    colorize (255, 196) (renderCheckpointInfo t.timestamp checkpointTime)
-        ++ colorize (stateColor t.state) (renderTaskState t.state)
-        ++ " "
-        ++ colorize (stringToColor t.topic) (printf "%4s" t.topic)
-        ++ " "
-        ++ colorize (stateColor t.state) (printf "%2d." t.taskID)
-        ++ newMarker
-        ++ (colorizePrio . colorizeTags . colorizeIP . fixLink) t.title
-        ++ " ("
-        ++ colorizedAgeData
-        ++ ") "
-        ++ renderDeadlineInfo t.deadline modelTime t.state
+    newTaskMarker
+        ++ case t.state of
+            Todo -> renderDecoratedTaskLine []
+            Done -> stroked $ renderDecoratedTaskLine [38, 5, 246]
+            Cancelled -> stroked $ renderDecoratedTaskLine [38, 5, 246]
+            Suspended -> stroked $ renderDecoratedTaskLine [38, 5, 246]
+            Failed -> stroked $ renderDecoratedTaskLine [38, 5, 196]
+            Doing -> renderDecoratedTaskLine [48, 5, 214]
+            Building -> renderDecoratedTaskLine [48, 5, 81]
+            Waiting -> renderDecoratedTaskLine [48, 5, 146]
+            Next -> renderDecoratedTaskLine [48, 5, 236, 38, 5, 231]
   where
-    ageData = renderTime modelTime t.timestamp
-    colorizedAgeData =
-        if modelTime - t.timestamp < 120
-            then colorize ipColor ageData
-            else ageData
+    renderDecoratedTaskLine :: [Word8] -> String
+    renderDecoratedTaskLine codes = decorate codes line
+    line = printf "%4s: %2d. %s %s (%s) %s" t.topic t.taskID newMarker t.title ageData deadlineInfo
+    deadlineInfo = renderDeadlineInfo t.deadline modelTime t.state
     newMarker =
         if modelTime - t.timestamp < 120
-            then colorize ipColor " "
+            then "*"
             else " "
-
-colorizePrio :: String -> String
-colorizePrio t = newTitle
-  where
-    newTitle = unwords $ map colorPrio (words t)
-    colorPrio w = if "/" `isPrefixOf` w then colorize prioColor w else w
-
-colorizeTags :: String -> String
-colorizeTags t = newTitle
-  where
-    newTitle = unwords $ map colorTag (words t)
-    colorTag w = if "#" `isPrefixOf` w then colorize tagColor w else w
-
-colorizeIP :: String -> String
-colorizeIP s =
-    subRegex regex s replaced
-  where
-    ipPattern = "([0-9]{1,3}\\.){3}[0-9]{1,3}"
-    regex = mkRegex ipPattern
-    replaced = colorize ipColor "\\0"
-
-fixLink :: String -> String
-fixLink s = unwords $ map shortenLink (words s)
-
-shortenLink :: String -> String
-shortenLink text =
-    if "http" `isPrefixOf` text
-        then
-            colorize urlColor "URL:" ++ " " ++ hyperlinkCode text (intercalate "/" (reverse (take 3 (reverse (splitOn "/" text)))))
-        else
-            text
+    newTaskMarker =
+        if t.timestamp > checkpointTime
+            then "> "
+            else "  "
+    ageData = renderTime modelTime t.timestamp
 
 renderDeadlineInfo :: Maybe Integer -> Integer -> TaskState -> String
 renderDeadlineInfo maybeDeadline modelTime taskState =
@@ -158,37 +91,7 @@ renderDeadlineInfo maybeDeadline modelTime taskState =
             Nothing -> ""
             Just deadlineTime ->
                 if deadlineTime <= modelTime
-                    then colorize timeoutColor "TIMED OUT!"
+                    then decorate [48, 5, 196, 38, 5, 231] "TIMED OUT!"
                     else deadlineInfo deadlineTime
   where
-    deadlineInfo endTS = colorize deadlineColor ("[by " ++ convertPosixToTimeStr endTS modelTime ++ "]")
-
-renderCheckpointInfo :: Integer -> Integer -> String
-renderCheckpointInfo taskTime checkpointTime =
-    if taskTime > checkpointTime then "▶️" else "  "
-
--- A better hash: mix bits using XOR and shifts
-stringHash :: String -> Int
-stringHash = foldl mix 0
-  where
-    mix h c =
-        let x = ord c
-         in (h `xor` (x + h `shiftL` 5 + h `shiftR` 2))
-
-stringToColor :: String -> (Word8, Word8)
-stringToColor s =
-    let n = stringHash s
-        range = length colorList
-        mapped = (abs (n + 5) `mod` range)
-     in colorList !! mapped
-
-bgColorListLight :: [Word8]
-bgColorListLight =
-    [204, 214, 227, 190, 122, 111, 140, 213, 250, 231]
-
-bgColorListDark :: [Word8]
-bgColorListDark =
-    [167, 202, 214, 106, 37, 33, 98, 170, 240, 235]
-
-colorList :: [(Word8, Word8)]
-colorList = map (,16) bgColorListLight ++ map (,231) bgColorListDark
+    deadlineInfo endTS = decorate [48, 5, 112, 38, 5, 232] ("[by " ++ convertPosixToTimeStr endTS modelTime ++ "]")
