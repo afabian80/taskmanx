@@ -5,22 +5,22 @@ import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime)
 
 toDHMS :: Integer -> (Integer, Integer, Integer, Integer)
 toDHMS totalSeconds =
-  let days = totalSeconds `div` secondsInDay
-      remainingDay = totalSeconds `mod` secondsInDay
+    let days = totalSeconds `div` secondsInDay
+        remainingDay = totalSeconds `mod` secondsInDay
 
-      hours = remainingDay `div` secondsInHour
-      remainingHour = remainingDay `mod` secondsInHour
+        hours = remainingDay `div` secondsInHour
+        remainingHour = remainingDay `mod` secondsInHour
 
-      minutes = remainingHour `div` secondsInMinute
+        minutes = remainingHour `div` secondsInMinute
 
-      seconds = remainingHour `mod` secondsInMinute
+        seconds = remainingHour `mod` secondsInMinute
 
-      secondsInDay = 86400
+        secondsInDay = 86400
 
-      secondsInHour = 3600
+        secondsInHour = 3600
 
-      secondsInMinute = 60
-   in (days, hours, minutes, seconds)
+        secondsInMinute = 60
+     in (days, hours, minutes, seconds)
 
 renderTime :: Integer -> Integer -> String
 renderTime modelTime taskTime = showTimeRounded (d, h, m, s)
@@ -35,13 +35,13 @@ showTimeRounded (d, _, _, _) = show d ++ "d"
 
 convertPosixToTimeStr :: Integer -> Integer -> String
 convertPosixToTimeStr ts modelTime =
-  timeStr
+    timeStr
   where
     timeStr =
-      if ts - modelTime > 3600 * 24 * 5 -- 5 days
-        then
-          formatTime defaultTimeLocale "%F" posixTime
-        else
-          formatTime defaultTimeLocale "%a %H:%M" posixTime
+        if ts - modelTime > 3600 * 24 * 5 -- 5 days
+            then
+                formatTime defaultTimeLocale "%F" posixTime
+            else
+                formatTime defaultTimeLocale "%a %H:%M" posixTime
     posixTime = posixSecondsToUTCTime (realToFrac (ts + zoneDiff) :: POSIXTime)
     zoneDiff = 3600
