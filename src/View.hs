@@ -70,7 +70,7 @@ renderTaskLine modelTime checkpointTime t =
   where
     renderDecoratedTaskLine :: [Word8] -> String
     renderDecoratedTaskLine codes = decorate codes line
-    line = printf "%4s: %2d. %s %s (%s) %s" t.topic t.taskID newMarker t.title ageData deadlineInfo
+    line = printf "%2d. %s %s (%s) %s #%s" t.taskID newMarker t.title ageData deadlineInfo t.topic
     deadlineInfo = renderDeadlineInfo t.deadline modelTime t.state
     newMarker =
         if modelTime - t.timestamp < 120
@@ -78,8 +78,8 @@ renderTaskLine modelTime checkpointTime t =
             else " "
     newTaskMarker =
         if t.timestamp > checkpointTime
-            then "> "
-            else "  "
+            then " > "
+            else "   "
     ageData = renderTime modelTime t.timestamp
 
 renderDeadlineInfo :: Maybe Integer -> Integer -> TaskState -> String
