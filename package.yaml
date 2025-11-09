@@ -45,6 +45,11 @@ ghc-options:
 
 library:
   source-dirs: src
+  ghc-options:
+    - -Wall
+    - -Werror
+    - -fwrite-ide-info
+    - -hiedir=.hie
 
 executables:
   elmlike-exe:

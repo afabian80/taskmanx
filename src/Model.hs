@@ -1,3 +1,5 @@
+{-# LANGUAGE StrictData #-}
+
 module Model (
     Model (..),
     Task (..),
