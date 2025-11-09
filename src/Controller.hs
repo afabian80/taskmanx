@@ -83,9 +83,28 @@ handleLine line model =
         Right (Undeadline args) -> updateDeadline model (args ++ " 0")
         Right (SetNumber args) -> updateBuildNumberStr model args
         Right (SetTopic args) -> setTopic model args
+        Right (Replace args) -> replace model args
         Left e -> model{_error = Just e}
   where
     command = commandFromInput line
+
+replace :: Model -> String -> Model
+replace model args =
+    case mIndex of
+        Nothing -> model{_error = Just ("Invalid number: " ++ indexStr)}
+        Just index -> case lookupTaskAtIndex model.tasks index of
+            Nothing -> model{_error = Just ("No task with index " ++ show index)}
+            Just task -> model{tasks = map (replaceTitle task) model.tasks}
+  where
+    indexStr = concat (take 1 (words args))
+    mIndex = readMaybe indexStr :: Maybe Integer
+    newTitle = unwords $ drop 1 $ words args
+
+    replaceTitle :: Task -> Task -> Task
+    replaceTitle theTask aTask =
+        if aTask == theTask
+            then aTask{title = newTitle}
+            else aTask
 
 setTopic :: Model -> String -> Model
 setTopic model args =
@@ -252,6 +271,7 @@ commandFromInput (InputLine line) =
             | command `elem` failedCommands -> makeSafeCommand (SetTaskState Failed) args
             | command `elem` numberCommands -> makeSafeCommand SetNumber args
             | command `elem` topicCommands -> makeSafeCommand SetTopic args
+            | command `elem` replaceCommands -> makeSafeCommand Replace args
             | otherwise -> Left ("Unknown command: " ++ command)
 
 makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
@@ -381,6 +401,9 @@ toggleReadyCommands = ["toggle", "toggleReady", "t"]
 toggleUrlCommands :: [String]
 toggleUrlCommands = ["u", "urls"]
 
+replaceCommands :: [String]
+replaceCommands = ["replace"]
+
 allCommands :: [String]
 allCommands =
     concat
@@ -404,6 +427,7 @@ allCommands =
         , undeadlineCommands
         , toggleReadyCommands
         , toggleUrlCommands
+        , replaceCommands
         ]
 
 sortedCommands :: [String]

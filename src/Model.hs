@@ -79,4 +79,5 @@ data Command
     | Undeadline String
     | SetNumber String
     | SetTopic String
+    | Replace String
     deriving (Show)
