@@ -1,9 +1,13 @@
+{-# LANGUAGE StrictData #-}
+
 module Time (renderTime, convertPosixToTimeStr) where
 
 import Data.Time (defaultTimeLocale, formatTime)
 import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime)
 
-toDHMS :: Integer -> (Integer, Integer, Integer, Integer)
+data TaskTime = TaskTime Integer Integer Integer Integer deriving (Show, Read)
+
+toDHMS :: Integer -> TaskTime
 toDHMS totalSeconds =
     let days = totalSeconds `div` secondsInDay
         remainingDay = totalSeconds `mod` secondsInDay
@@ -20,18 +24,18 @@ toDHMS totalSeconds =
         secondsInHour = 3600
 
         secondsInMinute = 60
-     in (days, hours, minutes, seconds)
+     in TaskTime days hours minutes seconds
 
 renderTime :: Integer -> Integer -> String
-renderTime modelTime taskTime = showTimeRounded (d, h, m, s)
+renderTime modelTime taskTime = showTimeRounded tt
   where
-    (d, h, m, s) = toDHMS (modelTime - taskTime)
+    tt = toDHMS (modelTime - taskTime)
 
-showTimeRounded :: (Integer, Integer, Integer, Integer) -> String
-showTimeRounded (0, 0, 0, s) = show s ++ "s"
-showTimeRounded (0, 0, m, _) = show m ++ "m"
-showTimeRounded (0, h, _, _) = show h ++ "h"
-showTimeRounded (d, _, _, _) = show d ++ "d"
+showTimeRounded :: TaskTime -> String
+showTimeRounded (TaskTime 0 0 0 s) = show s ++ "s"
+showTimeRounded (TaskTime 0 0 m _) = show m ++ "m"
+showTimeRounded (TaskTime 0 h _ _) = show h ++ "h"
+showTimeRounded (TaskTime d _ _ _) = show d ++ "d"
 
 convertPosixToTimeStr :: Integer -> Integer -> String
 convertPosixToTimeStr ts modelTime =
