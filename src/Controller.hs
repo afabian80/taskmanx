@@ -146,11 +146,16 @@ defaultTopic = "   "
 generateTaskId :: [Task] -> Integer -> Integer
 generateTaskId usedIds maxId =
     let usedSet = Set.fromList (map taskID usedIds)
+        potentialIds :: [Integer]
         potentialIds = [1 ..]
+
+        firstAvailable :: Maybe Integer
         firstAvailable = find (\n -> n > maxId || not (Set.member n usedSet)) potentialIds
      in case firstAvailable of
-            Just n | n <= maxId -> n
-            _ -> error "too many tasks"
+            Just n
+                | n <= maxId -> n
+                | otherwise -> error "too many tasks"
+            Nothing -> error "too many tasks"
 
 updateBuildNumberStr :: Model -> String -> Model
 updateBuildNumberStr model args =
