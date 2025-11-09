@@ -3,9 +3,11 @@
 module View (render) where
 
 import Data.List (groupBy, intercalate, isPrefixOf, sortBy)
+import Data.Maybe
 import Data.Ord (comparing)
 import Data.Word (Word8)
 import Model
+import Safe (maximumMay)
 import Text.Printf
 import Time
 
@@ -134,30 +136,28 @@ renderTaskLine model task =
             else text
 
     limitedTitle :: String
-    limitedTitle = take maxTitleLen urlMaskedTitle
+    limitedTitle =
+        case maxTitleLen of
+            Just n -> take n urlMaskedTitle
+            Nothing -> urlMaskedTitle
 
-    maxTitleLen :: Int
-    maxTitleLen =
-        if null titleLengths
-            then 1
-            else maximum titleLengths
+    maxTitleLen :: Maybe Int
+    maxTitleLen = maximumMay titleLengths
 
     titleLengths :: [Int]
     titleLengths = map (length . urlMask . title) (take model.maxTasks model.tasks)
 
     limitedTitleWithPadding :: String
-    limitedTitleWithPadding = printf "%-*s" maxTitleLen limitedTitle
+    limitedTitleWithPadding =
+        case maxTitleLen of
+            Just n -> printf "%-*s" n limitedTitle
+            Nothing -> printf "%-s" limitedTitle
 
     replaceUrl :: String -> String
     replaceUrl w = if "http" `isPrefixOf` w then "[link]" else w
 
     maxTopicLen :: Int
-    maxTopicLen =
-        if null topicLengths
-            then
-                1
-            else
-                maximum topicLengths
+    maxTopicLen = fromMaybe 1 (maximumMay topicLengths)
 
     topicLengths :: [Int]
     topicLengths = map (length . topic) (take model.maxTasks model.tasks)
