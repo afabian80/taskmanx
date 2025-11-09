@@ -297,7 +297,7 @@ deleteTaskByIndex :: Model -> Integer -> Model
 deleteTaskByIndex model index =
     case taskAtIndex of
         Nothing -> model{_error = Just $ "No task with index " ++ show index}
-        Just task -> deleteTaskByTitle model task.title
+        Just task -> model{tasks = filter (/= task) model.tasks}
   where
     taskAtIndex = lookupTaskAtIndex model.tasks index
 
