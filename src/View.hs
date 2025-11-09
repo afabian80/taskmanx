@@ -137,7 +137,7 @@ renderTaskLine model task =
     limitedTitle = take maxTitleLen urlMaskedTitle
 
     maxTitleLen :: Int
-    maxTitleLen = maximum (map (length . urlMask . title) model.tasks)
+    maxTitleLen = maximum (map (length . urlMask . title) (take model.maxTasks model.tasks))
 
     limitedTitleWithPadding :: String
     limitedTitleWithPadding = printf "%-*s" maxTitleLen limitedTitle
@@ -146,7 +146,7 @@ renderTaskLine model task =
     replaceUrl w = if "http" `isPrefixOf` w then "[link]" else w
 
     maxTopicLen :: Int
-    maxTopicLen = maximum (map (length . topic) model.tasks)
+    maxTopicLen = maximum (map (length . topic) (take model.maxTasks model.tasks))
 
 renderDeadlineInfo :: Maybe Integer -> Integer -> TaskState -> String
 renderDeadlineInfo maybeDeadline modelTime taskState =

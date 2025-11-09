@@ -30,6 +30,7 @@ main :: IO ()
 main = do
     exists <- doesFileExist modelFile
     currentSeconds <- getCurrentSeconds
+    let maxTaskNumber = 1000
     if exists
         then do
             content <- readFile modelFile
@@ -51,6 +52,7 @@ main = do
                             , trash = []
                             , hideReady = False
                             , hideUrl = True
+                            , maxTasks = maxTaskNumber
                             }
         else do
             loop
@@ -64,6 +66,7 @@ main = do
                     , trash = []
                     , hideReady = False
                     , hideUrl = True
+                    , maxTasks = maxTaskNumber
                     }
 
 loadMaybeCheckpoint :: String -> Maybe Integer

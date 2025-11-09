@@ -23,6 +23,7 @@ data Model = Model
     , trash :: [String]
     , hideReady :: Bool
     , hideUrl :: Bool
+    , maxTasks :: Int
     }
     deriving (Show)
 
