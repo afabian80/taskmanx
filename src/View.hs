@@ -117,7 +117,12 @@ renderTaskLine model task =
             else "   "
 
     ageData :: String
-    ageData = printf "%s" (renderTime model.time task.timestamp)
+    ageData =
+        if task.state `elem` [Done, Failed, Cancelled]
+            then
+                ""
+            else
+                printf "%s" (renderTime model.time task.timestamp)
 
     urlMaskedTitle :: String
     urlMaskedTitle = urlMask task.title
