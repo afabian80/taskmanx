@@ -58,7 +58,7 @@ renderTasks model =
         groupedTasks = groupBy sameTopic filteredTasks
 
         renderTopic :: [Task] -> [String]
-        renderTopic = map (renderTaskLine model.time model.checkpoint model.hideUrl)
+        renderTopic = map (renderTaskLine model)
      in -- I could add empty lines between different topic, but it does not look good.
         "Tasks:\n======\n" ++ taskLines ++ "\n" ++ modelError model._error
 
@@ -66,10 +66,10 @@ filterReady :: Bool -> Task -> Bool
 filterReady p t =
     not (p && (t.state `elem` [Done, Cancelled, Suspended, Todo, Failed, Next]))
 
-renderTaskLine :: Integer -> Integer -> Bool -> Task -> String
-renderTaskLine modelTime checkpointTime hu t =
+renderTaskLine :: Model -> Task -> String
+renderTaskLine model task =
     newTaskMarker
-        ++ case t.state of
+        ++ case task.state of
             Todo -> renderDecoratedTaskLine todoColor
             Done -> stroked $ renderDecoratedTaskLine finishedColor
             Cancelled -> stroked $ renderDecoratedTaskLine finishedColor
@@ -92,27 +92,27 @@ renderTaskLine modelTime checkpointTime hu t =
     renderDecoratedTaskLine :: [Word8] -> String
     renderDecoratedTaskLine codes = decorate codes line
 
-    line = printf "%2d.│%s%s │%5s │%8s %s" t.taskID newMarker limitedTitleWithPadding ageData t.topic deadlineInfo
+    line = printf "%2d.│%s%s │%5s │%8s %s" task.taskID newMarker limitedTitleWithPadding ageData task.topic deadlineInfo
 
-    deadlineInfo = renderDeadlineInfo t.deadline modelTime t.state
+    deadlineInfo = renderDeadlineInfo task.deadline model.time task.state
 
     newMarker =
-        if modelTime - t.timestamp < 5
+        if model.time - task.timestamp < 5
             then "■ "
             else "  "
 
     newTaskMarker =
-        if t.timestamp > checkpointTime
+        if task.timestamp > model.checkpoint
             then " " ++ decorate [38, 5, 112] "■" ++ " "
             else "   "
 
     ageData :: String
-    ageData = printf "%s" (renderTime modelTime t.timestamp)
+    ageData = printf "%s" (renderTime model.time task.timestamp)
 
     urlMaskedTitle =
-        if hu
-            then unwords (map replaceUrl (words t.title))
-            else t.title
+        if model.hideUrl
+            then unwords (map replaceUrl (words task.title))
+            else task.title
 
     limitedTitle :: String
     limitedTitle = take maxTitleLen urlMaskedTitle
