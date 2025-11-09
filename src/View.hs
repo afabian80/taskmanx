@@ -89,6 +89,7 @@ renderTaskLine model task =
     renderDecoratedTaskLine :: [Word8] -> String
     renderDecoratedTaskLine codes = decorate codes line
 
+    line :: String
     line =
         printf
             "%2d.│%s%s │%5s │%*s %s"
@@ -100,13 +101,16 @@ renderTaskLine model task =
             task.topic
             deadlineInfo
 
+    deadlineInfo :: String
     deadlineInfo = renderDeadlineInfo task.deadline model.time task.state
 
+    newMarker :: String
     newMarker =
         if model.time - task.timestamp < 5
             then "■ "
             else "  "
 
+    newTaskMarker :: String
     newTaskMarker =
         if task.timestamp > model.checkpoint
             then " " ++ decorate [38, 5, 112] "■" ++ " "
@@ -115,21 +119,26 @@ renderTaskLine model task =
     ageData :: String
     ageData = printf "%s" (renderTime model.time task.timestamp)
 
-    urlMaskedTitle =
+    urlMaskedTitle :: String
+    urlMaskedTitle = urlMask task.title
+
+    urlMask :: String -> String
+    urlMask text =
         if model.hideUrl
-            then unwords (map replaceUrl (words task.title))
-            else task.title
+            then unwords (map replaceUrl (words text))
+            else text
 
     limitedTitle :: String
     limitedTitle = take maxTitleLen urlMaskedTitle
 
-    maxTitleLen = 60 :: Int
+    maxTitleLen :: Int
+    maxTitleLen = maximum (map (length . urlMask . title) model.tasks)
 
     limitedTitleWithPadding :: String
     limitedTitleWithPadding = printf "%-*s" maxTitleLen limitedTitle
 
     replaceUrl :: String -> String
-    replaceUrl w = if "http" `isPrefixOf` w then "...URL..." else w
+    replaceUrl w = if "http" `isPrefixOf` w then "[link]" else w
 
     maxTopicLen :: Int
     maxTopicLen = maximum (map (length . topic) model.tasks)
