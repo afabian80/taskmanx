@@ -46,7 +46,7 @@ renderTasks model =
         modelError (Just e) = decorate [48, 5, 160, 38, 5, 231] ("ERROR: " ++ e)
 
         sortedTasks :: [Task]
-        sortedTasks = sortBy (comparing topic <> comparing timestamp) model.tasks
+        sortedTasks = sortBy (comparing topic) model.tasks
 
         filteredTasks :: [Task]
         filteredTasks = filter (filterReady model.hideReady) sortedTasks
