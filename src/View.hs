@@ -9,9 +9,6 @@ import Model
 import Text.Printf
 import Time
 
-colorize :: (Word8, Word8) -> String -> String
-colorize (bg, fg) = decorate [48, 5, bg, 38, 5, fg]
-
 decorate :: [Word8] -> String -> String
 decorate [] text = text
 decorate codes text =
@@ -30,7 +27,7 @@ render model = renderCheckpointTime model ++ renderTasks model ++ renderDebugInf
 renderCheckpointTime :: Model -> String
 renderCheckpointTime model = "\t\tCheckpoint: " ++ convertPosixToTimeStr model.checkpoint model.time ++ toggleReadyInfo ++ "\n"
   where
-    toggleReadyInfo = if model.hideReady then "    " ++ colorize (111, 232) "Showing only active tasks!" else ""
+    toggleReadyInfo = if model.hideReady then "    " ++ decorate [48, 5, 111, 38, 5, 232] "Showing only active tasks!" else ""
 
 renderDebugInfo :: Model -> String
 renderDebugInfo _ = ""
@@ -92,7 +89,15 @@ renderTaskLine model task =
     renderDecoratedTaskLine :: [Word8] -> String
     renderDecoratedTaskLine codes = decorate codes line
 
-    line = printf "%2d.│%s%s │%5s │%8s %s" task.taskID newMarker limitedTitleWithPadding ageData task.topic deadlineInfo
+    line =
+        printf
+            "%2d.│%s%s │%5s │%8s %s"
+            task.taskID
+            newMarker
+            limitedTitleWithPadding
+            ageData
+            task.topic
+            deadlineInfo
 
     deadlineInfo = renderDeadlineInfo task.deadline model.time task.state
 
