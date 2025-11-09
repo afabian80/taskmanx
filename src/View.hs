@@ -73,7 +73,7 @@ renderTaskLine modelTime checkpointTime hu t =
             Todo -> renderDecoratedTaskLine todoColor
             Done -> stroked $ renderDecoratedTaskLine finishedColor
             Cancelled -> stroked $ renderDecoratedTaskLine finishedColor
-            Suspended -> stroked $ renderDecoratedTaskLine finishedColor
+            Suspended -> renderDecoratedTaskLine suspendColor
             Failed -> stroked $ renderDecoratedTaskLine failedColor
             Doing -> renderDecoratedTaskLine doingColor
             Building -> renderDecoratedTaskLine buildingColor
@@ -82,6 +82,7 @@ renderTaskLine modelTime checkpointTime hu t =
   where
     todoColor = [48, 5, 252]
     finishedColor = [38, 5, 248]
+    suspendColor = [48, 5, 252, 38, 5, 105]
     failedColor = [38, 5, 214]
     doingColor = [48, 5, 214]
     buildingColor = [48, 5, 81]
