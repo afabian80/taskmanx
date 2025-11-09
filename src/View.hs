@@ -91,11 +91,12 @@ renderTaskLine model task =
 
     line =
         printf
-            "%2d.│%s%s │%5s │%8s %s"
+            "%2d.│%s%s │%5s │%*s %s"
             task.taskID
             newMarker
             limitedTitleWithPadding
             ageData
+            maxTopicLen
             task.topic
             deadlineInfo
 
@@ -129,6 +130,9 @@ renderTaskLine model task =
 
     replaceUrl :: String -> String
     replaceUrl w = if "http" `isPrefixOf` w then "...URL..." else w
+
+    maxTopicLen :: Int
+    maxTopicLen = maximum (map (length . topic) model.tasks)
 
 renderDeadlineInfo :: Maybe Integer -> Integer -> TaskState -> String
 renderDeadlineInfo maybeDeadline modelTime taskState =
