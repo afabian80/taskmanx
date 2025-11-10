@@ -157,7 +157,7 @@ renderTaskLine model task =
             Nothing -> printf "%-s" limitedTitle
 
     replaceUrl :: String -> String
-    replaceUrl w = if "http" `isPrefixOf` w then "[link]" else w
+    replaceUrl w = if "http" `isPrefixOf` w then "«link»" else w
 
     maxTopicLen :: Int
     maxTopicLen = fromMaybe 1 (maximumMay topicLengths)
