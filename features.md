@@ -1,3 +1,4 @@
 # Planned features
 
-- show help
+- use Text instead of String internally for titles
+
