@@ -42,7 +42,10 @@ renderTasks model =
                 map (intercalate "\n" . renderTopic) groupedTasks
 
         modelError Nothing = ""
-        modelError (Just e) = decorate [48, 5, 160, 38, 5, 231] ("ERROR: " ++ e)
+        modelError (Just e) = "\n" ++ decorate [48, 5, 160, 38, 5, 231] ("ERROR: " ++ e)
+
+        modelInfo Nothing = ""
+        modelInfo (Just text) = "\n" ++ decorate [38, 5, 63] text
 
         sortedTasks :: [Task]
         sortedTasks = sortBy (comparing topic) model.tasks
@@ -59,7 +62,7 @@ renderTasks model =
         renderTopic :: [Task] -> [String]
         renderTopic = map (renderTaskLine model)
      in -- I could add empty lines between different topic, but it does not look good.
-        "Tasks:\n======\n" ++ taskLines ++ "\n" ++ modelError model._error
+        "Tasks:\n======\n" ++ taskLines ++ "\n" ++ modelError model._error ++ modelInfo model.info
 
 filterReady :: Bool -> Task -> Bool
 filterReady p t =

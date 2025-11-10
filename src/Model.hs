@@ -24,6 +24,7 @@ data Model = Model
     , hideReady :: Bool
     , hideUrl :: Bool
     , maxTasks :: Int
+    , info :: Maybe String
     }
     deriving (Show)
 
@@ -83,4 +84,5 @@ data Command
     | SetNumber String
     | SetTopic String
     | Replace String
+    | Link String
     deriving (Show)

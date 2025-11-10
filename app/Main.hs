@@ -53,6 +53,7 @@ main = do
                             , hideReady = False
                             , hideUrl = True
                             , maxTasks = maxTaskNumber
+                            , info = Nothing
                             }
         else do
             loop
@@ -67,6 +68,7 @@ main = do
                     , hideReady = False
                     , hideUrl = True
                     , maxTasks = maxTaskNumber
+                    , info = Nothing
                     }
 
 loadMaybeCheckpoint :: String -> Maybe Integer

@@ -20,7 +20,7 @@ update msg tempModel =
         ToggleReady -> model{hideReady = not model.hideReady}
         ToggleUrl -> model{hideUrl = not model.hideUrl}
   where
-    model = tempModel{_error = Nothing, doNotBackup = False, trash = []}
+    model = tempModel{_error = Nothing, doNotBackup = False, trash = [], info = Nothing}
     (keep, waste) = cleanUpTasks model
 
 cleanUpTasks :: Model -> ([Task], [Task])
@@ -84,9 +84,28 @@ handleLine line model =
         Right (SetNumber args) -> updateBuildNumberStr model args
         Right (SetTopic args) -> setTopic model args
         Right (Replace args) -> replace model args
+        Right (Link args) -> showLink model args
         Left e -> model{_error = Just e}
   where
     command = commandFromInput line
+
+showLink :: Model -> String -> Model
+showLink model args =
+    case mIndex of
+        Nothing -> model{_error = Just ("Invalid number: " ++ indexStr)}
+        Just index -> case lookupTaskAtIndex model.tasks index of
+            Nothing -> model{_error = Just ("No task with index " ++ show index)}
+            Just theTask ->
+                if null link
+                    then model{_error = Just "No link in this task!"}
+                    else model{info = Just link}
+              where
+                link = url theTask
+  where
+    indexStr = unwords (take 1 (words args))
+    mIndex = readMaybe indexStr :: Maybe Integer
+    url :: Task -> String
+    url t = unwords $ filter ("http" `isPrefixOf`) (words t.title)
 
 replace :: Model -> String -> Model
 replace model args =
@@ -277,6 +296,7 @@ commandFromInput (InputLine line) =
             | command `elem` numberCommands -> makeSafeCommand SetNumber args
             | command `elem` topicCommands -> makeSafeCommand SetTopic args
             | command `elem` replaceCommands -> makeSafeCommand Replace args
+            | command `elem` linkCommands -> makeSafeCommand Link args
             | otherwise -> Left ("Unknown command: " ++ command)
 
 makeSafeCommand :: (String -> Command) -> [String] -> Either String Command
@@ -409,6 +429,9 @@ toggleUrlCommands = ["u", "urls"]
 replaceCommands :: [String]
 replaceCommands = ["replace"]
 
+linkCommands :: [String]
+linkCommands = ["link"]
+
 allCommands :: [String]
 allCommands =
     concat
@@ -433,6 +456,7 @@ allCommands =
         , toggleReadyCommands
         , toggleUrlCommands
         , replaceCommands
+        , linkCommands
         ]
 
 sortedCommands :: [String]
