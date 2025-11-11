@@ -8,6 +8,7 @@ import Data.Set qualified as Set
 import Model
 import Text.Read (readMaybe)
 import Text.Regex (mkRegex, subRegex)
+import Time
 
 update :: Msg -> Model -> Model
 update msg tempModel =
@@ -248,29 +249,35 @@ updateDeadline :: Model -> String -> Model
 updateDeadline model args =
     case mTask of
         Nothing -> model{_error = Just ("No task with index " ++ indexStr)}
-        Just task -> case deadlineSeconds of
-            Left e -> model{_error = Just e}
-            Right sec -> updateModel model task sec
+        Just task -> case deadlineTime of
+            Just sec -> updateModelWithDuration model task True sec
+            Nothing -> case deadlineSeconds of
+                Left e -> model{_error = Just e}
+                Right sec -> updateModelWithDuration model task False sec
   where
     indexStr = concat $ take 1 (words args) -- the first word
     deadlineStr = concat $ take 1 $ drop 1 $ words args -- the second word
+    deadlineTime = getEpochForTodayTime model.time deadlineStr
     deadlineSeconds = parseDeadlineToSeconds deadlineStr
     mIndex = readMaybe indexStr :: Maybe Integer
     mTask = case mIndex of
         Nothing -> Nothing
         Just index -> lookupTaskAtIndex model.tasks index
 
-    updateModel :: Model -> Task -> Integer -> Model
-    updateModel theModel theTask sec =
-        theModel{tasks = map (updateTask theModel theTask sec) theModel.tasks}
+    updateModelWithDuration :: Model -> Task -> Bool -> Integer -> Model
+    updateModelWithDuration theModel theTask exact sec =
+        theModel{tasks = map (updateTaskWithDuration theModel theTask exact sec) theModel.tasks}
 
-    updateTask :: Model -> Task -> Integer -> Task -> Task
-    updateTask theModel theTask sec aTask =
+    updateTaskWithDuration :: Model -> Task -> Bool -> Integer -> Task -> Task
+    updateTaskWithDuration theModel theTask exact sec aTask =
         if theTask.title == aTask.title
             then aTask{deadline = newDeadline, timestamp = model.time}
             else aTask
       where
-        newDeadline = if sec == 0 then Nothing else Just (theModel.time + sec)
+        newDeadline
+            | sec == 0 = Nothing
+            | exact = Just sec
+            | otherwise = Just (theModel.time + sec)
 
 commandFromInput :: InputLine -> Either String Command
 commandFromInput (InputLine line) =

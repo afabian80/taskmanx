@@ -1,9 +1,12 @@
 {-# LANGUAGE StrictData #-}
 
-module Time (renderTime, convertPosixToTimeStr) where
+module Time (renderTime, convertPosixToTimeStr, getEpochForTodayTime) where
 
 import Data.Time (defaultTimeLocale, formatTime)
-import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime)
+import Data.Time.Clock (UTCTime (..))
+import Data.Time.Clock.POSIX (POSIXTime, posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
+import Data.Time.Format (parseTimeM)
+import Data.Time.LocalTime (TimeOfDay (..), timeOfDayToTime)
 
 data TaskTime = TaskTime Integer Integer Integer Integer deriving (Show, Read)
 
@@ -49,3 +52,48 @@ convertPosixToTimeStr ts modelTime =
                 formatTime defaultTimeLocale "%a %H:%M" posixTime
     posixTime = posixSecondsToUTCTime (realToFrac (ts + zoneDiff) :: POSIXTime)
     zoneDiff = 3600
+
+-- Converts an Integer representing POSIX seconds into a UTCTime.
+integerToUTCTime :: Integer -> UTCTime
+integerToUTCTime seconds = posixSecondsToUTCTime (fromIntegral seconds :: POSIXTime)
+
+-- Converts a "HH:MM" string to a TimeOfDay structure.
+-- Returns Nothing on parsing failure.
+parseTimeOfDay :: String -> Maybe TimeOfDay
+parseTimeOfDay = parseTimeM False defaultTimeLocale "%R"
+
+{- | Pure function to calculate the new POSIX time in seconds.
+It takes the current time (in Integer seconds), and the target time string ("HH:MM").
+The resulting POSIX time will be for the current day at the specified time, in UTC.
+
+Arguments:
+1. currentEpochSeconds: The current POSIX epoch (e.g., from an API call or another IO step).
+2. timeStr: The target time string (e.g., "13:00").
+
+Returns:
+A 'Maybe Integer' which contains the new epoch time if parsing succeeded,
+or Nothing if the time string was invalid.
+-}
+getEpochForTodayTime :: Integer -> String -> Maybe Integer
+getEpochForTodayTime currentEpochSeconds timeStr = do
+    -- 1. Convert the input epoch back to a UTCTime.
+    let nowUtc = integerToUTCTime currentEpochSeconds
+
+    -- 2. Extract the current Day from the UTCTime.
+    let today = utctDay nowUtc
+
+    -- 3. Parse the target time string ("HH:MM") into a TimeOfDay structure.
+    timeOfDay <- parseTimeOfDay timeStr
+
+    -- 4. Create the target UTCTime by combining the current Day with the target TimeOfDay.
+    -- The DiffTime is calculated from TimeOfDay
+    let
+        targetDiffTime = timeOfDayToTime timeOfDay -- FIXED: Using timeOfDayToTime
+        targetUtc = UTCTime today targetDiffTime
+
+    -- 5. Convert the new UTCTime back to POSIX seconds and round it to an Integer.
+    let
+        newEpochTime = utcTimeToPOSIXSeconds targetUtc
+        result = round newEpochTime :: Integer
+
+    return result

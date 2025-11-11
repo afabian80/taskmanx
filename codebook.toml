@@ -3,4 +3,6 @@ words = [
     "setbuildnumber",
     "settopic",
     "undeadline",
+    "utc",
+    "utct",
 ]
