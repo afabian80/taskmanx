@@ -6,7 +6,7 @@ import Control.Monad (unless)
 import Controller
 import Data.Char (isSpace)
 import Data.List (isPrefixOf)
-import Data.Time (getCurrentTime, nominalDiffTimeToSeconds)
+import Data.Time (getCurrentTime, getZonedTime, nominalDiffTimeToSeconds, zonedTimeToUTC)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Model
 import System.Console.ANSI (
@@ -120,7 +120,13 @@ loop model = do
                         loop newModel
 
 getCurrentSeconds :: IO Integer
-getCurrentSeconds = do floor . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> getCurrentTime
+getCurrentSeconds = do
+    zonedTime <- getZonedTime
+    let utcTime = zonedTimeToUTC zonedTime
+    let posixTime = utcTimeToPOSIXSeconds utcTime
+    let epochSeconds :: Integer
+        epochSeconds = round posixTime
+    return epochSeconds
 
 inputLineToMsg :: InputLine -> Msg
 inputLineToMsg (InputLine line)

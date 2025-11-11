@@ -50,8 +50,7 @@ convertPosixToTimeStr ts modelTime =
                 formatTime defaultTimeLocale "%F" posixTime
             else
                 formatTime defaultTimeLocale "%a %H:%M" posixTime
-    posixTime = posixSecondsToUTCTime (realToFrac (ts + zoneDiff) :: POSIXTime)
-    zoneDiff = 3600
+    posixTime = posixSecondsToUTCTime (realToFrac (ts + 3600) :: POSIXTime)
 
 -- Converts an Integer representing POSIX seconds into a UTCTime.
 integerToUTCTime :: Integer -> UTCTime

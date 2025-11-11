@@ -250,10 +250,10 @@ updateDeadline model args =
     case mTask of
         Nothing -> model{_error = Just ("No task with index " ++ indexStr)}
         Just task -> case deadlineTime of
-            Just sec -> updateModelWithDuration model task True sec
+            Just sec -> updateModel model task True (sec - 3600)
             Nothing -> case deadlineSeconds of
                 Left e -> model{_error = Just e}
-                Right sec -> updateModelWithDuration model task False sec
+                Right sec -> updateModel model task False sec
   where
     indexStr = concat $ take 1 (words args) -- the first word
     deadlineStr = concat $ take 1 $ drop 1 $ words args -- the second word
@@ -264,8 +264,8 @@ updateDeadline model args =
         Nothing -> Nothing
         Just index -> lookupTaskAtIndex model.tasks index
 
-    updateModelWithDuration :: Model -> Task -> Bool -> Integer -> Model
-    updateModelWithDuration theModel theTask exact sec =
+    updateModel :: Model -> Task -> Bool -> Integer -> Model
+    updateModel theModel theTask exact sec =
         theModel{tasks = map (updateTaskWithDuration theModel theTask exact sec) theModel.tasks}
 
     updateTaskWithDuration :: Model -> Task -> Bool -> Integer -> Task -> Task
